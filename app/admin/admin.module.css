@@ -1,0 +1,38 @@
+.unauthorized {
+  max-width: 30rem;
+  margin: 4rem auto;
+  padding: 0 var(--space-lg);
+  text-align: center;
+}
+
+.unauthorizedHint {
+  opacity: 0.7;
+  font-size: var(--font-size-sm);
+}
+
+.page {
+  max-width: 50rem;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.pageNarrow {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.pageWide {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.backLink {
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+
+.title {
+  margin: var(--space-sm) 0 var(--space-xl);
+}

@@ -1,0 +1,26 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 26rem;
+  max-height: calc(100vh - 2 * var(--space-lg));
+  overflow-y: auto;
+  background: var(--background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-xl);
+  box-shadow: 0 8px 32px var(--color-shadow);
+}
+
+.title {
+  margin-bottom: var(--space-md);
+}

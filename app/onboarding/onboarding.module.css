@@ -1,0 +1,136 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.card {
+  width: 100%;
+  max-width: 32rem;
+  box-shadow: 0 10px 30px var(--color-shadow);
+}
+
+.progress {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.progressDot {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+.progressDotActive {
+  background: var(--color-primary);
+}
+
+.stepSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.stepTitle {
+  font-size: var(--font-size-xl);
+}
+
+.fieldLabel {
+  display: block;
+  font-size: var(--font-size-sm);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+@media (max-width: 420px) {
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.optionCard {
+  padding: var(--space-xl) var(--space-lg);
+  border-radius: var(--radius-control);
+  border: 2px solid var(--color-border-strong);
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.optionCard:hover {
+  border-color: var(--color-primary);
+}
+
+.optionCardActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  font-weight: 600;
+}
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.checkboxGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.checkboxOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+}
+
+.optionalNote {
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+}
+
+.formError {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+.grow {
+  flex: 1;
+}
+
+.linkRow {
+  margin-top: var(--space-xl);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+.linkRow a {
+  color: var(--color-primary);
+}

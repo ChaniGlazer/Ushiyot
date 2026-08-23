@@ -1,0 +1,109 @@
+/*
+ * ניצוץ — Design Tokens
+ * שכבת עיצוב משותפת: צבעים, רדיוסים, ריווחים וטיפוגרפיה.
+ * הערכים הוסקו מהשימוש בפועל במסכים הקיימים (ראו מיפוי ה-UX).
+ * כל צבע מוגדר גם ל-light וגם ל-dark (prefers-color-scheme).
+ */
+
+:root {
+  /* --- Surface --- */
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* --- Primary (הכחול הקיים בכל האפליקציה) --- */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-active: #1e40af;
+  --color-primary-subtle: rgba(37, 99, 235, 0.12);
+  --color-primary-border: rgba(37, 99, 235, 0.35);
+  --color-on-primary: #ffffff;
+
+  /* --- Success (כפתור "השתמשתי בזה", סטטוס DB תקין) --- */
+  /* מוכהה מ-#1a7f37 כדי לעמוד ביחס ניגודיות 4.5:1 גם על גבי success-subtle, לא רק על הרקע */
+  --color-success: #197934;
+  --color-success-subtle: rgba(26, 127, 55, 0.12);
+  --color-on-success: #ffffff;
+
+  /* --- Danger (מחיקה, "לא בשבילי", חריגה מתקרה) --- */
+  --color-danger: #c0392b;
+  --color-danger-hover: #a5311f;
+  --color-danger-subtle: rgba(192, 57, 43, 0.12);
+  --color-danger-border: rgba(192, 57, 43, 0.4);
+  --color-on-danger: #ffffff;
+
+  /* --- Error (טקסט שגיאת ולידציה בטפסים) --- */
+  /* מוכהה מ-#e05555 (היה 3.75:1 על רקע לבן - נכשל ב-4.5:1) */
+  --color-error: #be4848;
+
+  /* --- Warning (אין תקדים קיים באפליקציה - נוסף כדי להשלים את סט הסטטוסים) --- */
+  /* מוכהה מ-#b45309 כדי לעמוד ביחס ניגודיות 4.5:1 גם על גבי warning-subtle */
+  --color-warning: #a24b08;
+  --color-warning-subtle: rgba(180, 83, 9, 0.12);
+
+  /* --- Neutral / borders --- */
+  --color-border-subtle: rgba(128, 128, 128, 0.15);
+  --color-border: rgba(128, 128, 128, 0.25);
+  --color-border-strong: rgba(128, 128, 128, 0.35);
+  --color-shadow: rgba(0, 0, 0, 0.08);
+
+  /* --- Radius --- */
+  --radius-control: 0.5rem;
+  --radius-card: 1rem;
+  --radius-full: 999px;
+
+  /* --- Spacing (4 / 8 / 12 / 16 / 24 / 32px) --- */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-lg: 1rem;
+  --space-xl: 1.5rem;
+  --space-2xl: 2rem;
+
+  /* --- Typography --- */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.05rem;
+  --font-size-xl: 1.3rem;
+  --font-size-2xl: 2rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+
+    /* מוכהה מ-#3b82f6/#60a5fa/#2563eb - הצבע הבהיר המקורי נתן רק 3.68:1 לטקסט לבן על הכפתור (נכשל ב-4.5:1) */
+    --color-primary: #326fd1;
+    --color-primary-hover: #2c62b8;
+    --color-primary-active: #26549f;
+    --color-primary-subtle: rgba(59, 130, 246, 0.16);
+    --color-primary-border: rgba(59, 130, 246, 0.4);
+    --color-on-primary: #ffffff;
+
+    --color-success: #22c55e;
+    --color-success-subtle: rgba(34, 197, 94, 0.16);
+    /* הצבע הבהיר של success/danger ב-dark mode עצמו לא עומד ב-4.5:1 מול טקסט לבן - טקסט כהה על המילוי כן */
+    --color-on-success: #0a0a0a;
+
+    --color-danger: #ef4444;
+    --color-danger-hover: #f87171;
+    --color-danger-subtle: rgba(239, 68, 68, 0.16);
+    --color-danger-border: rgba(239, 68, 68, 0.45);
+    --color-on-danger: #0a0a0a;
+
+    --color-error: #f87171;
+
+    --color-warning: #f59e0b;
+    --color-warning-subtle: rgba(245, 158, 11, 0.16);
+
+    --color-border-subtle: rgba(160, 160, 160, 0.15);
+    --color-border: rgba(160, 160, 160, 0.25);
+    --color-border-strong: rgba(160, 160, 160, 0.35);
+    --color-shadow: rgba(0, 0, 0, 0.4);
+  }
+
+  html {
+    color-scheme: dark;
+  }
+}

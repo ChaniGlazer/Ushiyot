@@ -1,0 +1,41 @@
+.title {
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.subtitle {
+  opacity: 0.65;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.empty {
+  opacity: 0.6;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.headRow {
+  border-bottom: 1px solid var(--color-border-strong);
+  text-align: right;
+}
+
+.row {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.cell {
+  padding: var(--space-sm);
+}
+
+.overCap {
+  color: var(--color-danger);
+  font-weight: 700;
+}

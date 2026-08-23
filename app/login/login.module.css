@@ -1,0 +1,38 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.card {
+  width: 100%;
+  max-width: 26rem;
+  box-shadow: 0 10px 30px var(--color-shadow);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+}
+
+.formError {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
+
+.linkRow {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.linkRow a {
+  color: var(--color-primary);
+}

@@ -1,0 +1,36 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.label {
+  color: var(--foreground);
+}
+
+.select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border-strong);
+  background: var(--background);
+  color: inherit;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+
+.selectError {
+  border-color: var(--color-error);
+}
+
+.errorText {
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+}

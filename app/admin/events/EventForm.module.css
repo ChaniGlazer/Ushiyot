@@ -1,0 +1,55 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.textarea {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  resize: vertical;
+}
+
+.sectorsLabel {
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.sectorsRow {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.checkboxOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.dateRow {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.dateField {
+  flex: 1;
+}
+
+.submitButton {
+  align-self: flex-start;
+}
