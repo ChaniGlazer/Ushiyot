@@ -12,6 +12,14 @@
   will-change: transform;
 }
 
+/* A large-radius blur on 3 simultaneously-animating layers is real compositing cost on a
+   weaker mobile GPU - a smaller radius keeps the ambient effect without the expense. */
+@media (max-width: 47.999rem) {
+  .blob {
+    filter: blur(50px);
+  }
+}
+
 .blobPrimary {
   top: -10%;
   inset-inline-end: -10%;

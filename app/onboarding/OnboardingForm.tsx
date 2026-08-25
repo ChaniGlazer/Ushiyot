@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button, Card, Input, Select, Spinner } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
+import { DURATION, EASE_PREMIUM } from "@/lib/motion";
 import styles from "./onboarding.module.css";
 import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
 
@@ -15,6 +16,7 @@ const STEP_NAMES = ["פרטי גישה", "סגנון שפה", "נישה ופלט
 const DRAFT_STORAGE_KEY = "nitzotz-onboarding-draft";
 const DRAFT_SAVED_HINT_MS = 2000;
 const COMPLETION_SCREEN_MS = 1500;
+const STEP_SLIDE_TRANSITION = { duration: DURATION.base, ease: EASE_PREMIUM };
 
 type FormState = {
   name: string;
@@ -51,6 +53,11 @@ const INITIAL_STATE: FormState = {
 export default function OnboardingForm() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  // 1 = advancing (goNext), -1 = retreating (goBack) - drives which side the next step slides
+  // in from. The page is dir="rtl", so "forward" enters from the left/exits to the right (the
+  // mirror image of the LTR convention), matching Hebrew reading flow - see stepVariants below.
+  const [direction, setDirection] = useState(1);
+  const prefersReducedMotion = useReducedMotion();
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -219,13 +226,23 @@ export default function OnboardingForm() {
       return;
     }
     setError(null);
+    setDirection(1);
     setStep((s) => s + 1);
   }
 
   function goBack() {
     setError(null);
+    setDirection(-1);
     setStep((s) => Math.max(0, s - 1));
   }
+
+  // x offset is 0 under reduced motion (opacity/position stay put - see useReducedMotion above).
+  const stepSlideOffset = prefersReducedMotion ? 0 : 40;
+  const stepVariants = {
+    enter: (dir: number) => ({ opacity: prefersReducedMotion ? 1 : 0, x: -dir * stepSlideOffset }),
+    center: { opacity: 1, x: 0 },
+    exit: (dir: number) => ({ opacity: prefersReducedMotion ? 1 : 0, x: dir * stepSlideOffset }),
+  };
 
   async function handleSubmit() {
     const validationError = validateStep();
@@ -334,8 +351,19 @@ export default function OnboardingForm() {
           </div>
         </div>
 
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
         {step === 0 && (
-          <section ref={stepSectionRef} className={styles.stepSection}>
+          <motion.section
+            key="step-0"
+            ref={stepSectionRef}
+            className={styles.stepSection}
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={STEP_SLIDE_TRANSITION}
+          >
             <h2 className={styles.stepTitle}>פרטי התחברות</h2>
             <Input
               label="שם"
@@ -387,11 +415,21 @@ export default function OnboardingForm() {
               onBlur={() => markTouched("confirmPassword")}
               error={fieldError("confirmPassword")}
             />
-          </section>
+          </motion.section>
         )}
 
         {step === 1 && (
-          <section ref={stepSectionRef} className={styles.stepSection}>
+          <motion.section
+            key="step-1"
+            ref={stepSectionRef}
+            className={styles.stepSection}
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={STEP_SLIDE_TRANSITION}
+          >
             <h2 className={styles.stepTitle} id="vocabulary-style-label">
               באיזה עולם דימויים, טון דיבור ואוצר מילים תרצה שהתוכן שלך ינוסח?
             </h2>
@@ -409,11 +447,21 @@ export default function OnboardingForm() {
                 </button>
               ))}
             </div>
-          </section>
+          </motion.section>
         )}
 
         {step === 2 && (
-          <section ref={stepSectionRef} className={styles.stepSection}>
+          <motion.section
+            key="step-2"
+            ref={stepSectionRef}
+            className={styles.stepSection}
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={STEP_SLIDE_TRANSITION}
+          >
             <h2 className={styles.stepTitle}>נישה ופלטפורמות</h2>
             <Input
               label="באיזו נישה את/ה עוסק/ת?"
@@ -439,11 +487,21 @@ export default function OnboardingForm() {
                 ))}
               </div>
             </fieldset>
-          </section>
+          </motion.section>
         )}
 
         {step === 3 && (
-          <section ref={stepSectionRef} className={styles.stepSection}>
+          <motion.section
+            key="step-3"
+            ref={stepSectionRef}
+            className={styles.stepSection}
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={STEP_SLIDE_TRANSITION}
+          >
             <h2 className={styles.stepTitle}>טון דיבור ופרטים אישיים</h2>
             <span className={styles.fieldLabel} id="tone-label">
               איך היית מגדיר/ה את סגנון הדיבור שלך?
@@ -499,8 +557,9 @@ export default function OnboardingForm() {
                 </option>
               ))}
             </Select>
-          </section>
+          </motion.section>
         )}
+        </AnimatePresence>
 
         {error && (
           <p className={styles.formError} role="alert">

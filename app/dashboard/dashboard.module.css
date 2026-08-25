@@ -8,6 +8,47 @@
   gap: var(--space-xl);
 }
 
+@media (max-width: 47.999rem) {
+  .page {
+    /* Room for the fixed regenerate bar (see .regenerateStickyWrap) so it never covers the
+       last idea card. */
+    padding-bottom: 6rem;
+  }
+
+  /* Mobile priority order (not desktop shrunk to fit): the idea cards - the actual reason
+     someone opened the app - come right after the header, ahead of the day's Hebcal context
+     and the accuracy insight, both of which are supporting info. order works on .page's direct
+     flex children regardless of source order, so nothing needs to move in the JSX/DOM. */
+  .header {
+    order: 0;
+  }
+
+  .ideasSection {
+    order: 1;
+  }
+
+  .topRow {
+    order: 2;
+  }
+
+  .ideasHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* More compact than the desktop Bento tile - less padding, smaller heading - so the
+     supporting context/insight cards don't dominate a narrow screen the way they can afford
+     to as part of a wide desktop grid. */
+  .dateCard,
+  .accuracyCard {
+    padding: var(--space-lg);
+  }
+
+  .dateHebrew {
+    font-size: var(--font-size-lg);
+  }
+}
+
 .header {
   display: flex;
   align-items: flex-start;
@@ -128,9 +169,10 @@
   flex-shrink: 0;
 }
 
-.accuracyRing circle {
-  transition: stroke-dashoffset 400ms ease;
-}
+/* No CSS transition here: the ring's stroke-dashoffset is driven entirely by the count-up's
+   own Framer Motion animate() in AccuracyGauge.tsx (60fps, EASE_PREMIUM), synced frame-for-frame
+   with the number - a CSS transition on top would re-ease every intermediate JS-set value and
+   make the ring visibly lag behind the number instead of matching it. */
 
 .accuracyText {
   display: flex;
@@ -228,6 +270,23 @@
   margin-bottom: var(--space-lg);
 }
 
+.regenerateStickyWrap {
+  flex-shrink: 0;
+}
+
+@media (max-width: 47.999rem) {
+  .regenerateStickyWrap {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 20;
+    padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+    /* Fades into the background rather than a hard-edged bar, so cards scrolling underneath
+       don't visibly clip against a flat line. */
+    background: linear-gradient(to top, hsl(var(--background-hsl)) 65%, transparent);
+  }
+}
+
 .sectionTitle {
   font-size: var(--font-size-lg);
   font-weight: 600;
@@ -298,8 +357,8 @@
      custom properties natively. Framer Motion still drives the y/scale lift below, on the same
      premium easing curve, so the two systems read as one unified motion. */
   transition:
-    border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-color 300ms var(--ease-premium),
+    box-shadow 300ms var(--ease-premium);
 }
 
 /* Element-qualified (article.ideaCard, not just .ideaCard) so these reliably beat
@@ -405,8 +464,11 @@ article.heroCard:hover {
 }
 
 .cardMenuTrigger {
-  width: 2rem;
-  height: 2rem;
+  /* 44x44 minimum touch target (Apple/Google guidance) - the visible circle stays smaller
+     via a background-clip trick isn't worth the complexity here, so the whole hit area grows
+     with it; it reads fine at this size since it's already a bordered control, not bare text. */
+  width: 2.75rem;
+  height: 2.75rem;
   line-height: 1;
   font-size: 1.1rem;
   background: transparent;
@@ -414,6 +476,23 @@ article.heroCard:hover {
   border-radius: var(--radius-control);
   color: inherit;
   cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease-premium),
+    color 0.2s var(--ease-premium),
+    transform 0.15s var(--ease-premium),
+    background 0.15s var(--ease-premium);
+}
+
+.cardMenuTrigger:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* :active (not just :hover) so touch users get real press feedback - hover never fires on a
+   tap, only on an actual pointer hover, which touch input doesn't have. */
+.cardMenuTrigger:active {
+  transform: scale(0.94);
+  background: var(--color-primary-subtle);
 }
 
 .cardMenu {
@@ -532,6 +611,12 @@ article.heroCard:hover {
 
 .expandButton {
   width: 100%;
+  /* Fixed height (not just the shared Button .sm padding, which varies with text length) so
+     this lines up with the feedbackActions row below regardless of label length. */
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .draftTextarea {
@@ -547,15 +632,24 @@ article.heroCard:hover {
 }
 
 .feedbackActions {
-  display: flex;
-  gap: var(--space-sm);
+  /* Grid (not flex) so the two buttons split the row exactly in half regardless of their
+     label lengths, rather than each sizing to its own content. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  /* Separates this row from whatever sits above it (the expand button, or the draft
+     textarea's copy button) - previously 0, so the two rows were flush against each other. */
+  margin-top: var(--space-lg);
 }
 
 /* Layout-only modifier on top of the shared Button component (secondary / ghost-danger).
    The two-class selectors below give the active/selected fill enough specificity to
    reliably beat Button's own variant styles regardless of CSS module load order. */
 .feedbackButton {
-  flex: 1;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .feedbackButton.feedbackButtonUsedActive {

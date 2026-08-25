@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button, Card, Modal } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
+import { useCountUp } from "@/lib/useCountUp";
 import styles from "./dashboard.module.css";
 
 const RADIUS = 42;
@@ -30,14 +31,17 @@ type Props = {
 
 export default function AccuracyGauge({ score, label, transparency }: Props) {
   const [open, setOpen] = useState(false);
-  const offset = CIRCUMFERENCE * (1 - score / 100);
   const entranceProps = useEntranceMotion(1);
+  // Counts up from 0 to `score` (and the ring sweeps in step, since both derive from the same
+  // animated value) once the gauge scrolls into view, instead of just appearing at its final state.
+  const { ref: countRef, value: animatedScore } = useCountUp<SVGSVGElement>(score);
+  const offset = CIRCUMFERENCE * (1 - animatedScore / 100);
 
   return (
     <Card as={motion.div} className={styles.accuracyCard} {...entranceProps}>
       <span className={styles.contextLabel}>דיוק הפרופיל</span>
       <div className={styles.accuracyRow}>
-      <svg viewBox="0 0 100 100" width="72" height="72" className={styles.accuracyRing} aria-hidden="true">
+      <svg ref={countRef} viewBox="0 0 100 100" width="72" height="72" className={styles.accuracyRing} aria-hidden="true">
         <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="var(--color-border)" strokeWidth="9" />
         <circle
           cx="50"
@@ -52,7 +56,7 @@ export default function AccuracyGauge({ score, label, transparency }: Props) {
           transform="rotate(-90 50 50)"
         />
         <text x="50" y="57" textAnchor="middle" fontSize="24" fontWeight="700" fill="var(--foreground)">
-          {score}%
+          {animatedScore}%
         </text>
       </svg>
       <div className={styles.accuracyText}>

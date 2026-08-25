@@ -89,6 +89,14 @@
   --radius-card: 0.75rem; /* 12px - אחיד לכל כרטיסי ה-Bento */
   --radius-full: 999px;
 
+  /* --- Motion ---
+   * Single source of truth for the "premium" easing curve used by every native CSS
+   * transition/animation site-wide - numerically identical to EASE_PREMIUM in lib/motion.ts
+   * (the equivalent constant for Framer Motion-driven animations). CSS Modules can't import
+   * a JS constant, so this token is how the two stay in sync instead of each file hardcoding
+   * its own literal cubic-bezier(...). */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* --- Spacing (4 / 8 / 12 / 16 / 24 / 32px) --- */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -104,6 +112,16 @@
   --font-size-lg: 1.05rem;
   --font-size-xl: 1.5rem; /* H2 - IBM Plex Sans Hebrew 600/1.4 */
   --font-size-2xl: 2.25rem; /* H1 - IBM Plex Sans Hebrew 700/1.3/-0.01em */
+}
+
+/* Real font-size steps at the breakpoint (not a transform: scale) so the largest heading tier
+   reads proportionate on a phone instead of desktop-sized text jammed into a narrow column -
+   every consumer of --font-size-2xl (landing hero, dashboard hero card, onboarding/shabbat
+   titles) gets this for free since they all read the token rather than a literal value. */
+@media (max-width: 47.999rem) {
+  :root {
+    --font-size-2xl: 1.75rem; /* 28px, down from 36px */
+  }
 }
 
 /*

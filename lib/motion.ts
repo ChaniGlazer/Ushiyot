@@ -22,6 +22,11 @@ export const FADE_UP = {
 
 export const FADE_UP_TRANSITION = { duration: DURATION.entrance, ease: EASE_PREMIUM } as const;
 
+/** SparkButton's rising loading particles: how long one particle takes to rise and fade,
+ * and the delay between successive particles starting their loop. */
+export const PARTICLE_RISE_DURATION = 1.1;
+export const PARTICLE_STAGGER = 0.25;
+
 // Native drag/animation-event handlers collide with Framer Motion's own onDrag*/onAnimation*
 // props (different event signatures) - Omit these from a native element's prop type before
 // spreading it onto a motion.* component. Shared here since more than one component needs it.

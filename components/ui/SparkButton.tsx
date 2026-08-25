@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import type { ButtonHTMLAttributes } from "react";
-import { DURATION, EASE_PREMIUM, type MotionConflictingProps } from "@/lib/motion";
+import { DURATION, EASE_PREMIUM, PARTICLE_RISE_DURATION, PARTICLE_STAGGER, type MotionConflictingProps } from "@/lib/motion";
 import styles from "./SparkButton.module.css";
 
 export type SparkButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, MotionConflictingProps> & {
@@ -49,7 +49,7 @@ export default function SparkButton({ isLoading = false, disabled, className, ch
                   style={{ insetInlineStart: `calc(50% + ${x}px)` }}
                   initial={{ y: 0, opacity: 0 }}
                   animate={{ y: -28, opacity: [0, 1, 0] }}
-                  transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.25, ease: "easeOut" }}
+                  transition={{ duration: PARTICLE_RISE_DURATION, repeat: Infinity, delay: i * PARTICLE_STAGGER, ease: "easeOut" }}
                 />
               ))}
             </AnimatePresence>

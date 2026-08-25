@@ -226,7 +226,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
 
   if (ideas.length === 0) {
     return (
-      <section>
+      <section className={styles.ideasSection}>
         <h2 className={styles.preGenTitle}>מה תרצה לספר לי היום?</h2>
         <div className={styles.promptStream}>
           <span className={styles.promptStreamIcon} aria-hidden="true">
@@ -261,7 +261,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
   }
 
   return (
-    <section>
+    <section className={styles.ideasSection}>
       <div className={styles.ideasHeader}>
         <div>
           <h2 className={styles.sectionTitle}>רעיונות תוכן להיום</h2>
@@ -271,9 +271,14 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
               : "כבר יצרת מלא ניצוצות תוכן היום ✨ מחר מחכה לך סבב טרי."}
           </p>
         </div>
-        <SparkButton onClick={handleRegenerateAll} isLoading={loadingAll} disabled={remaining <= 0}>
-          {loadingAll ? "יוצר רעיונות..." : "צור רעיונות מחדש"}
-        </SparkButton>
+        {/* On mobile this wrapper becomes a fixed bottom bar (see .regenerateStickyWrap) so the
+            main action stays reachable while scrolling through the day's cards - on desktop it's
+            just a plain flex item, unchanged from before. */}
+        <div className={styles.regenerateStickyWrap}>
+          <SparkButton onClick={handleRegenerateAll} isLoading={loadingAll} disabled={remaining <= 0}>
+            {loadingAll ? "יוצר רעיונות..." : "צור רעיונות מחדש"}
+          </SparkButton>
+        </div>
       </div>
       {loadingAll && <p className={styles.loadingHint}>{LOADING_MESSAGES[loadingMessageIndex]}</p>}
 
