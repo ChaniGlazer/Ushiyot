@@ -1,4 +1,7 @@
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-control);
   border: 1px solid transparent;
   font-family: inherit;
@@ -19,13 +22,18 @@
   outline-offset: 2px;
 }
 
+/* min-height (not just padding) on both sizes so every Button meets the 44px touch-target
+   floor (Apple/Google guidance) regardless of its label length - padding alone lets a
+   short-label button end up shorter than that. */
 .md {
   padding: 0.6rem 1.1rem;
+  min-height: 2.75rem;
   font-size: var(--font-size-sm);
 }
 
 .sm {
   padding: 0.4rem 0.75rem;
+  min-height: 2.75rem;
   font-size: var(--font-size-xs);
 }
 

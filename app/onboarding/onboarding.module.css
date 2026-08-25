@@ -8,6 +8,27 @@
   padding: var(--space-2xl) var(--space-lg);
 }
 
+@media (max-width: 47.999rem) {
+  .page {
+    /* Top-aligned instead of centered: a step long enough to exceed the viewport (step 3/4,
+       with several fields) should start from its own top when it overflows, not from wherever
+       vertical centering happens to land mid-content. Bottom padding clears the fixed
+       back/continue bar (see .actions) so it never covers the last field. */
+    justify-content: flex-start;
+    padding-top: var(--space-lg);
+    padding-bottom: 6rem;
+  }
+
+  /* Element-qualified (div.card, not just .card) so this reliably beats Card.module.css's
+     own bare .card padding rule regardless of which CSS module happens to load later in the
+     bundle - same specificity otherwise, since the two classes live in separate hashed
+     modules and can't be combined into one compound selector. OnboardingForm always renders
+     this Card as a motion.div. */
+  div.card {
+    padding: var(--space-lg);
+  }
+}
+
 .logoLink {
   font-size: var(--font-size-xl);
   font-weight: 700;
@@ -157,6 +178,21 @@
   justify-content: space-between;
   gap: var(--space-md);
   margin-top: var(--space-xl);
+}
+
+@media (max-width: 47.999rem) {
+  /* Fixed bottom bar (same pattern as the dashboard's regenerate button) so "המשך"/"סיום
+     והרשמה" stays reachable without scrolling down through the rest of the step's fields. */
+  .actions {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 20;
+    max-width: 32rem;
+    margin: 0 auto;
+    padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, hsl(var(--background-hsl)) 65%, transparent);
+  }
 }
 
 .grow {
