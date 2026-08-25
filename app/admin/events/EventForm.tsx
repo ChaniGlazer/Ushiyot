@@ -1,8 +1,8 @@
 import { Button, Input } from "@/components/ui";
-import { SECTORS } from "@/lib/creators";
+import { VOCABULARY_STYLES } from "@/lib/creators";
 import styles from "./EventForm.module.css";
 
-const SECTOR_OPTIONS = [...SECTORS, "הכל"];
+const VOCABULARY_STYLE_OPTIONS = [...VOCABULARY_STYLES, "הכל"];
 
 type Props = {
   action: (formData: FormData) => void | Promise<void>;
@@ -39,17 +39,17 @@ export default function EventForm({ action, secret, submitLabel, defaultValues }
       </label>
 
       <div className={styles.field}>
-        <span className={styles.sectorsLabel}>מגזרים רלוונטיים</span>
+        <span className={styles.sectorsLabel}>סגנונות שפה רלוונטיים</span>
         <div className={styles.sectorsRow}>
-          {SECTOR_OPTIONS.map((sector) => (
-            <label key={sector} className={styles.checkboxOption}>
+          {VOCABULARY_STYLE_OPTIONS.map((style) => (
+            <label key={style} className={styles.checkboxOption}>
               <input
                 type="checkbox"
                 name="relevant_sectors"
-                value={sector}
-                defaultChecked={defaultValues?.sectors?.includes(sector)}
+                value={style}
+                defaultChecked={defaultValues?.sectors?.includes(style)}
               />
-              {sector}
+              {style}
             </label>
           ))}
         </div>

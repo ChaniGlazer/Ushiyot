@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/passwords";
-import { GENDERS, PLATFORMS, SECTORS, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
+import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
 import { attachSessionCookie, createSession } from "@/lib/session";
 
 type CreatorPayload = {
   name?: unknown;
   gender?: unknown;
   password?: unknown;
-  sector?: unknown;
+  vocabularyStyle?: unknown;
   niche?: unknown;
   platforms?: unknown;
   toneStyle?: unknown;
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     name,
     gender,
     password,
-    sector,
+    vocabularyStyle,
     niche,
     platforms,
     toneStyle,
@@ -60,8 +60,11 @@ export async function POST(request: Request) {
   if (typeof password !== "string" || password.length < 8) {
     return NextResponse.json({ error: "הסיסמה חייבת להכיל לפחות 8 תווים" }, { status: 400 });
   }
-  if (typeof sector !== "string" || !SECTORS.includes(sector as (typeof SECTORS)[number])) {
-    return NextResponse.json({ error: "מגזר לא תקין" }, { status: 400 });
+  if (
+    typeof vocabularyStyle !== "string" ||
+    !VOCABULARY_STYLES.includes(vocabularyStyle as (typeof VOCABULARY_STYLES)[number])
+  ) {
+    return NextResponse.json({ error: "יש לבחור סגנון שפה ודימויים" }, { status: 400 });
   }
   if (typeof niche !== "string" || !niche.trim()) {
     return NextResponse.json({ error: "יש לציין נישה" }, { status: 400 });
@@ -105,7 +108,7 @@ export async function POST(request: Request) {
   const result = db
     .prepare(
       `INSERT INTO creators
-        (email, name, gender, password_hash, sector, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number)
+        (email, name, gender, password_hash, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
       trimmedName,
       gender,
       hashPassword(password),
-      sector,
+      vocabularyStyle,
       niche.trim(),
       toneStyle,
       usesEmojis ? 1 : 0,
@@ -124,8 +127,14 @@ export async function POST(request: Request) {
       trimmedWhatsapp,
     );
 
-  const session = createSession(Number(result.lastInsertRowid));
-  const response = NextResponse.json({ id: result.lastInsertRowid }, { status: 201 });
+  const creatorId = Number(result.lastInsertRowid);
+
+  // Deliberately does NOT pre-generate the first idea batch here - an OpenAI call for 4 ideas
+  // with rationale/category takes ~15s, too slow to block the signup transaction itself. The
+  // client triggers /api/generate-ideas separately right after this succeeds (see
+  // OnboardingForm's handleSubmit), while showing its own "מכינים לך..." loading screen.
+  const session = createSession(creatorId);
+  const response = NextResponse.json({ id: creatorId }, { status: 201 });
   attachSessionCookie(response, session);
 
   return response;

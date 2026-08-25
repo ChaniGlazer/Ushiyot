@@ -43,6 +43,9 @@ export default function LoginForm() {
 
   return (
     <div className={styles.page}>
+      <Link href="/" className={styles.logoLink}>
+        ניצוץ
+      </Link>
       <Card className={styles.card}>
         <form onSubmit={handleSubmit} className={styles.form}>
           <h2 className={styles.title}>התחברות</h2>

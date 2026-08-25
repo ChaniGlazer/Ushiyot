@@ -3,13 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select } from "@/components/ui";
+import { Button, Card, Input, Select, Spinner } from "@/components/ui";
 import styles from "./onboarding.module.css";
-import { GENDERS, PLATFORMS, SECTORS, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
+import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
 
 const FAMILY_STATUSES = ["רווק/ה", "נשוי/אה", "גרוש/ה", "אלמן/ה"];
 const TOTAL_STEPS = 4;
+const STEP_NAMES = ["פרטי גישה", "סגנון שפה", "נישה ופלטפורמות", "טון ופרטים אישיים"];
 const DRAFT_STORAGE_KEY = "nitzotz-onboarding-draft";
+const DRAFT_SAVED_HINT_MS = 2000;
+const COMPLETION_SCREEN_MS = 1500;
 
 type FormState = {
   name: string;
@@ -17,7 +20,7 @@ type FormState = {
   password: string;
   confirmPassword: string;
   whatsappNumber: string;
-  sector: string;
+  vocabularyStyle: string;
   niche: string;
   platforms: string[];
   toneStyle: string;
@@ -33,7 +36,7 @@ const INITIAL_STATE: FormState = {
   password: "",
   confirmPassword: "",
   whatsappNumber: "",
-  sector: "",
+  vocabularyStyle: "",
   niche: "",
   platforms: [],
   toneStyle: "",
@@ -50,6 +53,8 @@ export default function OnboardingForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const stepSectionRef = useRef<HTMLElement>(null);
 
@@ -81,7 +86,7 @@ export default function OnboardingForm() {
       name: form.name,
       gender: form.gender,
       whatsappNumber: form.whatsappNumber,
-      sector: form.sector,
+      vocabularyStyle: form.vocabularyStyle,
       niche: form.niche,
       platforms: form.platforms,
       toneStyle: form.toneStyle,
@@ -91,6 +96,11 @@ export default function OnboardingForm() {
       familyStatus: form.familyStatus,
     };
     sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(persisted));
+    // Deferred to a microtask for the same reason as the restore effect above -
+    // avoids a same-tick cascading render from setState inside the effect body.
+    queueMicrotask(() => setDraftSaved(true));
+    const timeout = setTimeout(() => setDraftSaved(false), DRAFT_SAVED_HINT_MS);
+    return () => clearTimeout(timeout);
   }, [form, draftRestored]);
 
   // Move focus to the first field/option of the step whenever it changes, for smooth keyboard flow.
@@ -160,6 +170,23 @@ export default function OnboardingForm() {
     return touched[key] ? computeFieldError(key) : undefined;
   }
 
+  // Pure check for whether "הבא" should be enabled - mirrors validateStep's conditions
+  // without the side effects (touching fields, setting the error banner).
+  function isStepValid(): boolean {
+    if (step === 0) {
+      const keys: (keyof FormState)[] = ["name", "password", "confirmPassword", "whatsappNumber"];
+      if (keys.some((key) => computeFieldError(key))) return false;
+      if (!form.gender) return false;
+    }
+    if (step === 1 && !form.vocabularyStyle) return false;
+    if (step === 2) {
+      if (computeFieldError("niche")) return false;
+      if (form.platforms.length === 0) return false;
+    }
+    if (step === 3 && !form.toneStyle) return false;
+    return true;
+  }
+
   function validateStep(): string | null {
     if (step === 0) {
       const keys: (keyof FormState)[] = ["name", "password", "confirmPassword", "whatsappNumber"];
@@ -169,7 +196,7 @@ export default function OnboardingForm() {
       if (!form.gender) return "יש לבחור בן או בת";
     }
     if (step === 1) {
-      if (!form.sector) return "יש לבחור מגזר";
+      if (!form.vocabularyStyle) return "יש לבחור סגנון שפה ודימויים";
     }
     if (step === 2) {
       touchAll(["niche"]);
@@ -215,7 +242,7 @@ export default function OnboardingForm() {
           name: form.name,
           gender: form.gender,
           password: form.password,
-          sector: form.sector,
+          vocabularyStyle: form.vocabularyStyle,
           niche: form.niche,
           platforms: form.platforms,
           toneStyle: form.toneStyle,
@@ -236,20 +263,72 @@ export default function OnboardingForm() {
       }
 
       sessionStorage.removeItem(DRAFT_STORAGE_KEY);
-      router.push("/dashboard");
+
+      // Instant aha moment: generate today's first batch now, while still showing the
+      // "מכינים לך..." screen (submitting stays true), so /dashboard opens on 4 ready cards
+      // instead of an empty state. Best-effort - if this fails, the dashboard's own empty
+      // state ("צור רעיונות") is a perfectly fine fallback, so account creation still succeeds.
+      try {
+        await fetch(`/api/generate-ideas?creatorId=${data.id}`);
+      } catch {
+        // ignored - see comment above
+      }
+
+      setCompleted(true);
+      setTimeout(() => router.push("/dashboard"), COMPLETION_SCREEN_MS);
     } catch {
       setError("שגיאת רשת, נסו שוב");
       setSubmitting(false);
     }
   }
 
+  if (completed) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.completionScreen}>
+          <div className={styles.completionCheck}>✓</div>
+          <h2 className={styles.completionTitle}>יצרנו לך את החשבון!</h2>
+          <p>מעבירים אותך לדשבורד...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitting) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.completionScreen}>
+          <div className={styles.generatingSpinner}>
+            <Spinner />
+          </div>
+          <h2 className={styles.completionTitle}>מכינים לך את 4 ניצוצות התוכן הראשונים...</h2>
+          <p>כמה שניות, ותהיה לך התחלה מוכנה בדשבורד.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
+      <Link href="/" className={styles.logoLink}>
+        ניצוץ
+      </Link>
       <Card className={styles.card}>
         <div className={styles.progress}>
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div key={i} className={`${styles.progressDot} ${i <= step ? styles.progressDotActive : ""}`} />
-          ))}
+          <div className={styles.progressLabel}>
+            <span>
+              שלב {step + 1} מתוך {TOTAL_STEPS}: {STEP_NAMES[step]}
+            </span>
+            <span className={`${styles.draftSaved} ${draftSaved ? styles.draftSavedVisible : ""}`}>
+              הטיוטה נשמרה ✓
+            </span>
+          </div>
+          <div className={styles.progressBar}>
+            <div
+              className={styles.progressBarFill}
+              style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
+            />
+          </div>
         </div>
 
         {step === 0 && (
@@ -310,20 +389,20 @@ export default function OnboardingForm() {
 
         {step === 1 && (
           <section ref={stepSectionRef} className={styles.stepSection}>
-            <h2 className={styles.stepTitle} id="sector-label">
-              מהו המגזר שלך?
+            <h2 className={styles.stepTitle} id="vocabulary-style-label">
+              באיזה עולם דימויים, טון דיבור ואוצר מילים תרצה שהתוכן שלך ינוסח?
             </h2>
-            <div className={styles.cardGrid} role="radiogroup" aria-labelledby="sector-label">
-              {SECTORS.map((s) => (
+            <div className={styles.cardGrid} role="radiogroup" aria-labelledby="vocabulary-style-label">
+              {VOCABULARY_STYLES.map((style) => (
                 <button
-                  key={s}
+                  key={style}
                   type="button"
                   role="radio"
-                  aria-checked={form.sector === s}
-                  className={`${styles.optionCard} ${form.sector === s ? styles.optionCardActive : ""}`}
-                  onClick={() => update("sector", s)}
+                  aria-checked={form.vocabularyStyle === style}
+                  className={`${styles.optionCard} ${form.vocabularyStyle === style ? styles.optionCardActive : ""}`}
+                  onClick={() => update("vocabularyStyle", style)}
                 >
-                  {s}
+                  {style}
                 </button>
               ))}
             </div>
@@ -433,7 +512,13 @@ export default function OnboardingForm() {
             </Button>
           )}
           {step < TOTAL_STEPS - 1 ? (
-            <Button type="button" variant="primary" onClick={goNext} className={styles.grow}>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={goNext}
+              disabled={!isStepValid()}
+              className={styles.grow}
+            >
               המשך
             </Button>
           ) : (

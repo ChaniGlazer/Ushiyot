@@ -1,20 +1,26 @@
 "use client";
 
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ComponentPropsWithoutRef, ElementType } from "react";
 import Spinner from "./Spinner";
 import styles from "./Button.module.css";
 
-export type ButtonVariant = "primary" | "secondary" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost-danger";
 export type ButtonSize = "md" | "sm";
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type OwnProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   /** Shows a spinner and disables the button - the loading label itself is still passed via children. */
   isLoading?: boolean;
 };
 
-export default function Button({
+export type ButtonProps<T extends ElementType = "button"> = {
+  as?: T;
+} & OwnProps &
+  Omit<ComponentPropsWithoutRef<T>, keyof OwnProps | "as">;
+
+export default function Button<T extends ElementType = "button">({
+  as,
   variant = "primary",
   size = "md",
   isLoading = false,
@@ -22,13 +28,16 @@ export default function Button({
   className,
   children,
   ...props
-}: ButtonProps) {
+}: ButtonProps<T>) {
+  const Component = as ?? "button";
   const classNames = [styles.button, styles[variant], styles[size], className].filter(Boolean).join(" ");
+  const extraProps: Partial<ButtonHTMLAttributes<HTMLButtonElement>> =
+    Component === "button" ? { disabled: disabled || isLoading, "aria-busy": isLoading || undefined } : {};
 
   return (
-    <button className={classNames} disabled={disabled || isLoading} aria-busy={isLoading || undefined} {...props}>
+    <Component className={classNames} {...extraProps} {...props}>
       {isLoading && <Spinner />}
       {children}
-    </button>
+    </Component>
   );
 }

@@ -2,7 +2,7 @@ import { db } from "./db";
 import { DAILY_COST_LIMIT_USD, DEFAULT_IDEA_COUNT, OPENAI_MODEL } from "./config";
 import { estimateTypicalCallCostUsd } from "./costEstimate";
 
-export const DAILY_LIMIT_MESSAGE = "הגעת למכסה היומית שלך. נסי שוב מחר.";
+export const DAILY_LIMIT_MESSAGE = "כבר יצרת מלא ניצוצות תוכן היום ✨ מחר מחכה לך סבב טרי.";
 
 export type DailyUsage = {
   callCount: number;

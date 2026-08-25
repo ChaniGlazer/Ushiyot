@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { toCreatorProfile } from "@/lib/creators";
 import { expandIdea } from "@/lib/expandIdea";
 import { DAILY_LIMIT_MESSAGE } from "@/lib/apiUsage";
+import { incrementExpansionsCount } from "@/lib/accuracyScore";
 import type { CreatorRow } from "@/lib/session";
 
 type ExpandIdeaPayload = {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 
   const creatorRow = db
     .prepare(
-      `SELECT id, email, name, gender, sector, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
+      `SELECT id, email, name, gender, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
        FROM creators WHERE id = ?`,
     )
     .get(creatorId) as CreatorRow | undefined;
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
   try {
     const profile = toCreatorProfile(creatorRow);
     const draftText = await expandIdea(profile, { title, description, type });
+    incrementExpansionsCount(creatorId);
 
     return NextResponse.json({ draft_text: draftText });
   } catch (error) {

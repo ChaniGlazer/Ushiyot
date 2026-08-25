@@ -9,6 +9,8 @@
   /* --- Surface --- */
   --background: #ffffff;
   --foreground: #171717;
+  /* One step up from --background - for a fixed page header, distinct from regular content cards */
+  --color-bg-elevated: #f4f5f7;
 
   /* --- Primary (הכחול הקיים בכל האפליקציה) --- */
   --color-primary: #2563eb;
@@ -47,6 +49,7 @@
   --color-shadow: rgba(0, 0, 0, 0.08);
 
   /* --- Radius --- */
+  --radius-sm: 0.35rem;
   --radius-control: 0.5rem;
   --radius-card: 1rem;
   --radius-full: 999px;
@@ -72,6 +75,7 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --color-bg-elevated: #17181a;
 
     /* מוכהה מ-#3b82f6/#60a5fa/#2563eb - הצבע הבהיר המקורי נתן רק 3.68:1 לטקסט לבן על הכפתור (נכשל ב-4.5:1) */
     --color-primary: #326fd1;

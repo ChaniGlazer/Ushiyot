@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
   const creatorRow = db
     .prepare(
-      `SELECT id, email, name, gender, sector, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
+      `SELECT id, email, name, gender, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
        FROM creators WHERE id = ?`,
     )
     .get(creatorId) as CreatorRow | undefined;

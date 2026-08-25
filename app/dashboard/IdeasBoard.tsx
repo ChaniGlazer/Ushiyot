@@ -22,6 +22,18 @@ type Props = {
 
 const IDEA_COUNT = 4;
 
+const CATEGORY_LABELS: Record<string, string> = {
+  mainstream: "יציב ובטוח",
+  trending: "טרנדי היום",
+  wildcard: "יוצא דופן",
+};
+
+const CATEGORY_BADGE_CLASS: Record<string, string> = {
+  mainstream: "categoryMainstream",
+  trending: "categoryTrending",
+  wildcard: "categoryWildcard",
+};
+
 async function fetchIdeas(
   creatorId: number,
   count: number,
@@ -228,14 +240,21 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
     <section>
       <div className={styles.ideasHeader}>
         <div>
-          <h2>רעיונות תוכן להיום</h2>
+          <h2 className={styles.sectionTitle}>רעיונות תוכן להיום</h2>
           <p className={styles.remainingText}>
             {remaining > 0
-              ? `נותרו לך היום כ-${remaining} הצעות רעיונות נוספות`
-              : "הגעת למכסת ההצעות היומית שלך - נסי שוב מחר"}
+              ? `${IDEA_COUNT} ניצוצות התוכן היומיים שלך - מתחדשים כל יום.`
+              : "כבר יצרת מלא ניצוצות תוכן היום ✨ מחר מחכה לך סבב טרי."}
           </p>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={handleRegenerateAll} isLoading={loadingAll}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={handleRegenerateAll}
+          isLoading={loadingAll}
+          disabled={remaining <= 0}
+        >
           {loadingAll ? "יוצר רעיונות..." : "צור רעיונות מחדש"}
         </Button>
       </div>
@@ -277,7 +296,14 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
           return (
           <Card as="article" key={idea.id} className={styles.ideaCard}>
             <div className={styles.cardTopRow}>
-              <span className={styles.cardType}>{idea.type}</span>
+              <div className={styles.cardBadges}>
+                <span
+                  className={`${styles.categoryBadge} ${styles[CATEGORY_BADGE_CLASS[idea.category] ?? "categoryMainstream"]}`}
+                >
+                  {CATEGORY_LABELS[idea.category] ?? idea.category}
+                </span>
+                <span className={styles.cardType}>{idea.type}</span>
+              </div>
               <div
                 className={styles.cardMenuWrapper}
                 ref={openMenuIndex === index ? openMenuRef : undefined}
@@ -318,6 +344,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
               </div>
             </div>
             <h3 className={styles.cardTitle}>{idea.title}</h3>
+            {idea.rationale && <p className={styles.cardRationale}>💡 {idea.rationale}</p>}
             <p className={styles.cardDescription}>{idea.description}</p>
             {drafts[idea.id] === undefined && copiedIndex === index && (
               <p className={styles.cardStatus}>הועתק ללוח ✓</p>
@@ -348,22 +375,26 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
               </>
             )}
             <div className={styles.feedbackActions}>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 className={`${styles.feedbackButton} ${feedback[idea.id] === "used" ? styles.feedbackButtonUsedActive : ""}`}
                 onClick={() => handleFeedback(idea, "used")}
                 disabled={feedbackLoadingId === idea.id}
               >
-                השתמשתי בזה ✓
-              </button>
-              <button
+                השתמשתי בזה {feedback[idea.id] === "used" && "✓"}
+              </Button>
+              <Button
                 type="button"
+                variant="ghost-danger"
+                size="sm"
                 className={`${styles.feedbackButton} ${feedback[idea.id] === "dismissed" ? styles.feedbackButtonDismissedActive : ""}`}
                 onClick={() => handleFeedback(idea, "dismissed")}
                 disabled={feedbackLoadingId === idea.id}
               >
-                לא בשבילי ✗
-              </button>
+                לא בשבילי {feedback[idea.id] === "dismissed" && "✗"}
+              </Button>
             </div>
           </Card>
           );

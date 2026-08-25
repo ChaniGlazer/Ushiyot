@@ -13,11 +13,25 @@ export type ModalProps = {
 export default function Modal({ open, onClose, title, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // Tracks whether the mousedown that started this click sequence actually landed on the
+  // overlay itself (not on the dialog). Without this, dragging to select text inside a field
+  // (e.g. selecting "admin" to delete it) can end the drag with the mouse released just outside
+  // the field - onClick still fires on the overlay for that mouseup and closes the modal, even
+  // though the user only meant to select text, never to click outside it.
+  const mouseDownOnOverlay = useRef(false);
+
+  // Deliberately separate from the keydown-listener effect below: this one must only run when
+  // the dialog actually opens, not on every re-render of the caller (a caller-supplied inline
+  // `onClose` gets a new reference each render - if focus() lived in the effect keyed on
+  // `[open, onClose]`, every keystroke in the dialog would re-run it and steal focus back to
+  // the dialog container mid-typing).
+  useEffect(() => {
+    if (!open) return;
+    dialogRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-
-    dialogRef.current?.focus();
 
     function handleKeydown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -52,7 +66,15 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div
+      className={styles.overlay}
+      onMouseDown={(e) => {
+        mouseDownOnOverlay.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (mouseDownOnOverlay.current && e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         ref={dialogRef}
         className={styles.dialog}
@@ -60,11 +82,15 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
       >
-        <h2 id={titleId} className={styles.title}>
-          {title}
-        </h2>
+        <div className={styles.header}>
+          <h2 id={titleId} className={styles.title}>
+            {title}
+          </h2>
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="סגירה">
+            ✕
+          </button>
+        </div>
         {children}
       </div>
     </div>

@@ -66,3 +66,17 @@
   background: var(--color-danger-subtle);
   border-color: var(--color-danger);
 }
+
+/* Low-stakes negative action (e.g. "not for me") - danger-colored text on a neutral (not
+   danger-colored) border, so it still reads as a real button next to .secondary, just quieter.
+   Distinct from .danger, which is reserved for higher-stakes destructive actions like delete-account. */
+.ghost-danger {
+  background: transparent;
+  border-color: var(--color-border-strong);
+  color: var(--color-danger);
+}
+
+.ghost-danger:hover:not(:disabled) {
+  background: var(--color-danger-subtle);
+  border-color: var(--color-danger-border);
+}

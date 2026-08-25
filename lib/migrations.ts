@@ -67,10 +67,55 @@ export function runMigrations(db: DatabaseSync): void {
   if (!creatorColumns.some((column) => column.name === "gender")) {
     db.exec("ALTER TABLE creators ADD COLUMN gender TEXT CHECK (gender IN ('בן', 'בת'));");
   }
+  // Identity-neutral replacement for the old `sector` column (see lib/creators.ts). No CHECK
+  // constraint on purpose, so the option wording can evolve without another table rebuild.
+  // `sector` itself is left in place (never dropped/renamed, matching this file's convention)
+  // and backfilled once so existing creators keep an equivalent tone instead of going blank.
+  // Daily-visit streak (see lib/streak.ts). streak_last_active_date is the last Israel-local
+  // date the streak was credited - either a real visit or a Shabbat/chag day silently frozen
+  // through. streak_frozen_total is a running count of frozen rest-days, purely informational.
+  if (!creatorColumns.some((column) => column.name === "streak_count")) {
+    db.exec("ALTER TABLE creators ADD COLUMN streak_count INTEGER NOT NULL DEFAULT 0;");
+  }
+  if (!creatorColumns.some((column) => column.name === "streak_last_active_date")) {
+    db.exec("ALTER TABLE creators ADD COLUMN streak_last_active_date TEXT;");
+  }
+  if (!creatorColumns.some((column) => column.name === "streak_frozen_total")) {
+    db.exec("ALTER TABLE creators ADD COLUMN streak_frozen_total INTEGER NOT NULL DEFAULT 0;");
+  }
+  // Counts how many times this creator has expanded an idea to a full draft - one of the
+  // signals behind the dashboard's "accuracy gauge" (see lib/accuracyScore.ts). Unlike
+  // used/dismissed feedback (already tracked per-idea in idea_history), an expansion isn't
+  // tied to a single idea_history row worth persisting on its own, so a running counter is
+  // simpler than a new table.
+  if (!creatorColumns.some((column) => column.name === "expansions_count")) {
+    db.exec("ALTER TABLE creators ADD COLUMN expansions_count INTEGER NOT NULL DEFAULT 0;");
+  }
+  if (!creatorColumns.some((column) => column.name === "vocabulary_style")) {
+    db.exec("ALTER TABLE creators ADD COLUMN vocabulary_style TEXT;");
+    db.exec(`
+      UPDATE creators SET vocabulary_style = CASE sector
+        WHEN 'חרדי' THEN 'עולם דימויים תורני ומעמיק'
+        WHEN 'דתי-לאומי' THEN 'ישראלי מודרני עם זיקה למקורות'
+        WHEN 'מסורתי' THEN 'חם, אישי ומעורר השראה'
+        WHEN 'חילוני' THEN 'שפה מקצועית עסקית ישירה'
+        ELSE NULL
+      END
+      WHERE sector IS NOT NULL;
+    `);
+  }
 
   const ideaHistoryColumns = db.prepare("PRAGMA table_info(idea_history)").all() as { name: string }[];
   if (!ideaHistoryColumns.some((column) => column.name === "batch_id")) {
     db.exec("ALTER TABLE idea_history ADD COLUMN batch_id TEXT;");
+  }
+  if (!ideaHistoryColumns.some((column) => column.name === "category")) {
+    db.exec(
+      "ALTER TABLE idea_history ADD COLUMN category TEXT CHECK (category IN ('mainstream', 'trending', 'wildcard'));",
+    );
+  }
+  if (!ideaHistoryColumns.some((column) => column.name === "rationale")) {
+    db.exec("ALTER TABLE idea_history ADD COLUMN rationale TEXT;");
   }
 
   db.exec(`

@@ -12,7 +12,7 @@ export type CreatorRow = {
   email: string;
   name: string | null;
   gender: string | null;
-  sector: string | null;
+  vocabulary_style: string | null;
   niche: string | null;
   tone_style: string | null;
   uses_emojis: number | null;
@@ -58,7 +58,7 @@ export function getCreatorBySession(sessionId: string | undefined): CreatorRow |
 
   const creator = db
     .prepare(
-      `SELECT id, email, name, gender, sector, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
+      `SELECT id, email, name, gender, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
        FROM creators WHERE id = ?`,
     )
     .get(session.creator_id) as CreatorRow | undefined;

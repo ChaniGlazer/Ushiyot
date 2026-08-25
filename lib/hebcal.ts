@@ -79,6 +79,8 @@ type HebcalItem = {
   date: string;
   hebrew?: string;
   memo?: string;
+  /** Present on holiday items; true for days melacha is forbidden (Israel single-day scheme). */
+  yomtov?: boolean;
 };
 
 type HebcalResponse = {
@@ -152,6 +154,36 @@ export async function isShabbatNow(now: Date = new Date()): Promise<boolean> {
   if (candleLighting === null || havdalah === null) return false;
   const nowMs = now.getTime();
   return nowMs >= candleLighting && nowMs < havdalah;
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return toIsraelDateString(d);
+}
+
+/**
+ * Every date in [startDate, endDate] (inclusive) that's a Shabbat (Saturday) or a Yom Tov
+ * holiday per Hebcal's Israel single-day scheme - used by lib/streak.ts to tell an actual
+ * missed day apart from a Shabbat/chag the app should never have expected a visit on.
+ */
+export async function getRestDaysInRange(startDate: string, endDate: string): Promise<Set<string>> {
+  const restDays = new Set<string>();
+
+  for (let d = startDate; d <= endDate; d = addDays(d, 1)) {
+    if (new Date(`${d}T12:00:00`).getDay() === 6) restDays.add(d);
+  }
+
+  const url =
+    `${HEBCAL_BASE}/hebcal?v=1&cfg=json&start=${startDate}&end=${endDate}` +
+    `&maj=on&min=off&mod=off&nx=off&mf=off&ss=off&il=on`;
+  const data = await fetchJson<HebcalResponse>(url);
+
+  for (const item of data.items ?? []) {
+    if (item.yomtov) restDays.add(item.date.slice(0, 10));
+  }
+
+  return restDays;
 }
 
 export async function getDailyInfo(date: Date = new Date()): Promise<DailyHebcalInfo> {

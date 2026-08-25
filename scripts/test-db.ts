@@ -5,7 +5,7 @@ type Creator = {
   id: number;
   email: string;
   password_hash: string;
-  sector: string;
+  vocabulary_style: string;
   niche: string;
   tone_style: string;
   uses_emojis: number;
@@ -20,14 +20,14 @@ const email = `test-${randomUUID()}@example.com`;
 
 const insert = db.prepare(`
   INSERT INTO creators
-    (email, password_hash, sector, niche, tone_style, uses_emojis, children_count, city, family_status, platforms)
+    (email, password_hash, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const result = insert.run(
   email,
   "example-password-hash",
-  "חילוני",
+  "שפה מקצועית עסקית ישירה",
   "כושר",
   "קליל",
   1,

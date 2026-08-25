@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db";
-import type { ContentIdea } from "./generateIdeas";
+import type { ContentIdea, IdeaCategory } from "./generateIdeas";
 
 export type IdeaStatus = "shown" | "used" | "dismissed";
 
@@ -11,6 +11,8 @@ export type IdeaHistoryRow = {
   idea_title: string;
   idea_description: string;
   idea_type: string;
+  category: string | null;
+  rationale: string | null;
   status: IdeaStatus;
   created_at: string;
 };
@@ -22,12 +24,21 @@ export function recordIdeasShown(
 ): number[] {
   const batchId = randomUUID();
   const insert = db.prepare(
-    `INSERT INTO idea_history (creator_id, date, idea_title, idea_description, idea_type, status, batch_id)
-     VALUES (?, ?, ?, ?, ?, 'shown', ?)`,
+    `INSERT INTO idea_history (creator_id, date, idea_title, idea_description, idea_type, category, rationale, status, batch_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'shown', ?)`,
   );
 
   return ideas.map((idea) => {
-    const result = insert.run(creatorId, date, idea.title, idea.description, idea.type, batchId);
+    const result = insert.run(
+      creatorId,
+      date,
+      idea.title,
+      idea.description,
+      idea.type,
+      idea.category,
+      idea.rationale,
+      batchId,
+    );
     return Number(result.lastInsertRowid);
   });
 }
@@ -58,7 +69,7 @@ export function getTodaysIdeaBatch(creatorId: number, date: string, expectedCoun
 
   const rows = db
     .prepare(
-      `SELECT id, idea_title, idea_description, idea_type, status
+      `SELECT id, idea_title, idea_description, idea_type, category, rationale, status
        FROM idea_history WHERE batch_id = ? ORDER BY id ASC`,
     )
     .all(latestBatch.batch_id) as {
@@ -66,6 +77,8 @@ export function getTodaysIdeaBatch(creatorId: number, date: string, expectedCoun
     idea_title: string;
     idea_description: string;
     idea_type: string;
+    category: IdeaCategory | null;
+    rationale: string | null;
     status: IdeaStatus;
   }[];
 
@@ -74,6 +87,8 @@ export function getTodaysIdeaBatch(creatorId: number, date: string, expectedCoun
     title: row.idea_title,
     description: row.idea_description,
     type: row.idea_type,
+    category: row.category ?? "mainstream",
+    rationale: row.rationale ?? "",
     status: row.status,
   }));
 }

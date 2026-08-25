@@ -71,7 +71,7 @@ function buildUserPrompt(profile: CreatorProfile, idea: IdeaInput): string {
     profile.niche ? `נישה: ${profile.niche}` : null,
     profile.toneStyle ? `טון דיבור: ${profile.toneStyle}` : null,
     `שימוש באימוג'ים: ${profile.usesEmojis ? "כן" : "לא"}`,
-    profile.sector ? `מגזר (לצורך שפה מתאימה בלבד, לא מקור לתוכן): ${profile.sector}` : null,
+    profile.vocabularyStyle ? `סגנון שפה ודימויים מועדף: ${profile.vocabularyStyle}` : null,
   ]
     .filter(Boolean)
     .join("\n");

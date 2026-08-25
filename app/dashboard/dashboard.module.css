@@ -37,6 +37,103 @@
   white-space: nowrap;
 }
 
+.streakLine {
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-xs);
+}
+
+.streakFrozenNote {
+  color: var(--color-primary);
+}
+
+.topRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.dateCard {
+  flex: 1 1 18rem;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-card);
+  padding: var(--space-2xl) var(--space-xl);
+}
+
+.accuracyCard {
+  flex: 0 1 16rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-card);
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.accuracyRing {
+  flex-shrink: 0;
+}
+
+.accuracyRing circle {
+  transition: stroke-dashoffset 400ms ease;
+}
+
+.accuracyText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.accuracyLabel {
+  font-size: var(--font-size-sm);
+  opacity: 0.8;
+}
+
+.accuracyLink {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.accuracyLink:hover {
+  color: var(--color-primary-hover);
+}
+
+.transparencyBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
+  font-size: var(--font-size-sm);
+}
+
+.transparencySectionTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.transparencyList {
+  list-style: disc;
+  padding-inline-start: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.transparencyFootnote {
+  font-size: var(--font-size-xs);
+  opacity: 0.65;
+  font-style: italic;
+}
+
 .dateHebrew {
   font-size: var(--font-size-xl);
   margin-bottom: var(--space-xs);
@@ -77,6 +174,11 @@
   margin-bottom: var(--space-lg);
 }
 
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
 .errorBanner {
   color: var(--color-error);
   font-size: var(--font-size-sm);
@@ -84,7 +186,8 @@
 }
 
 .preGenTitle {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
   margin-bottom: var(--space-md);
 }
 
@@ -104,14 +207,25 @@
 
 .cardsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: var(--space-lg);
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+@media (min-width: 48rem) {
+  .cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 75rem) {
+  .cardsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .ideaCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
 }
 
 .cardTopRow {
@@ -119,20 +233,64 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.cardBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
 .cardType {
   align-self: flex-start;
-  font-size: var(--font-size-xs);
-  padding: 0.2rem var(--space-sm);
-  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-sm);
   background: var(--color-primary-subtle);
   color: var(--color-primary);
+}
+
+.categoryBadge {
+  align-self: flex-start;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.categoryMainstream {
+  background: transparent;
+  border-color: var(--color-border-strong);
+  color: var(--foreground);
+  opacity: 0.75;
+}
+
+.categoryTrending {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.categoryWildcard {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border-color: var(--color-primary-border);
+}
+
+.cardRationale {
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+  font-style: italic;
+  margin-bottom: var(--space-sm);
 }
 
 .cardStatus {
   font-size: var(--font-size-xs);
   color: var(--color-primary);
+  margin-bottom: var(--space-sm);
 }
 
 .cardMenuWrapper {
@@ -159,15 +317,34 @@
   display: flex;
   flex-direction: column;
   min-width: 10rem;
-  background: var(--background);
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-control);
-  box-shadow: 0 4px 16px var(--color-shadow);
+  box-shadow: 0 4px 12px var(--color-shadow);
   overflow: hidden;
+  transform-origin: top right;
+  animation: menuIn 150ms ease-out;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardMenu {
+    animation: none;
+  }
 }
 
 .cardMenuItem {
-  padding: 0.6rem var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   text-align: start;
   background: transparent;
   border: none;
@@ -188,12 +365,14 @@
 
 .cardTitle {
   font-size: var(--font-size-lg);
+  margin-bottom: var(--space-sm);
 }
 
 .cardDescription {
   font-size: var(--font-size-base);
   opacity: 0.85;
   flex-grow: 1;
+  margin-bottom: var(--space-xl);
 }
 
 .skeletonChip {
@@ -208,6 +387,7 @@
 .skeletonLine,
 .skeletonLineShort {
   height: 1em;
+  margin-bottom: var(--space-sm);
   border-radius: var(--radius-control);
   background: var(--color-border-strong);
   animation: skeletonPulse 1.4s ease-in-out infinite;
@@ -216,6 +396,7 @@
 .skeletonTitle {
   width: 70%;
   height: 1.3em;
+  margin-bottom: var(--space-md);
 }
 
 .skeletonLineShort {
@@ -263,39 +444,24 @@
   gap: var(--space-sm);
 }
 
+/* Layout-only modifier on top of the shared Button component (secondary / ghost-danger).
+   The two-class selectors below give the active/selected fill enough specificity to
+   reliably beat Button's own variant styles regardless of CSS module load order. */
 .feedbackButton {
   flex: 1;
-  padding: 0.5rem var(--space-sm);
-  border-radius: var(--radius-control);
-  border: 1px solid var(--color-border-strong);
-  background: transparent;
-  color: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
 }
 
-.feedbackButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.feedbackButtonUsedActive {
+.feedbackButton.feedbackButtonUsedActive {
   border-color: var(--color-success);
-  background: var(--color-success);
-  color: var(--color-on-success);
+  background: var(--color-success-subtle);
+  color: var(--color-success);
   font-weight: 700;
 }
 
-.feedbackButtonDismissedActive {
+.feedbackButton.feedbackButtonDismissedActive {
   border-color: var(--color-danger);
-  background: var(--color-danger);
-  color: var(--color-on-danger);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
   font-weight: 700;
 }
 

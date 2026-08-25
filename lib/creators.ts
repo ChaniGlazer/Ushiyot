@@ -6,12 +6,21 @@ export function isValidIsraeliMobile(phone: string): boolean {
   return ISRAELI_MOBILE_REGEX.test(phone.trim());
 }
 
-export const SECTORS = ["חרדי", "דתי-לאומי", "מסורתי", "חילוני"] as const;
+// Identity-neutral reframing of the old "sector" (מגזר) question: instead of asking the
+// creator to self-label religiously/ethnically, we ask which world of imagery, tone and
+// vocabulary they want their content to use. Functionally still drives the same AI tone
+// calibration as the old sector field, just elicited less bluntly.
+export const VOCABULARY_STYLES = [
+  "עולם דימויים תורני ומעמיק",
+  "ישראלי מודרני עם זיקה למקורות",
+  "חם, אישי ומעורר השראה",
+  "שפה מקצועית עסקית ישירה",
+] as const;
 export const TONE_STYLES = ["רשמי", "קליל"] as const;
 export const PLATFORMS = ["אינסטגרם", "וואטסאפ סטטוס", "טיקטוק"] as const;
 export const GENDERS = ["בן", "בת"] as const;
 
-export type Sector = (typeof SECTORS)[number];
+export type VocabularyStyle = (typeof VOCABULARY_STYLES)[number];
 export type ToneStyle = (typeof TONE_STYLES)[number];
 export type Platform = (typeof PLATFORMS)[number];
 export type Gender = (typeof GENDERS)[number];
@@ -20,7 +29,7 @@ export type CreatorProfile = {
   id: number;
   name: string | null;
   gender: string | null;
-  sector: string | null;
+  vocabularyStyle: string | null;
   niche: string | null;
   toneStyle: string | null;
   usesEmojis: boolean;
@@ -46,7 +55,7 @@ export function toCreatorProfile(row: CreatorRow): CreatorProfile {
     id: row.id,
     name: row.name,
     gender: row.gender,
-    sector: row.sector,
+    vocabularyStyle: row.vocabulary_style,
     niche: row.niche,
     toneStyle: row.tone_style,
     usesEmojis: row.uses_emojis === 1,
