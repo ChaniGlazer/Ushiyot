@@ -3,11 +3,14 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Button, Card, Input } from "@/components/ui";
+import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import styles from "./login.module.css";
 
 export default function LoginForm() {
   const router = useRouter();
+  const entranceProps = useEntranceMotion();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export default function LoginForm() {
       <Link href="/" className={styles.logoLink}>
         ניצוץ
       </Link>
-      <Card className={styles.card}>
+      <Card as={motion.div} className={styles.card} {...entranceProps}>
         <form onSubmit={handleSubmit} className={styles.form}>
           <h2 className={styles.title}>התחברות</h2>
 

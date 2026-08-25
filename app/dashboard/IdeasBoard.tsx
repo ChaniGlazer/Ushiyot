@@ -1,9 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Card } from "@/components/ui";
+import { motion, useReducedMotion } from "framer-motion";
+import { Button, Card, SparkButton } from "@/components/ui";
+import { getEntranceMotionProps } from "@/lib/useEntranceMotion";
+import { DURATION, EASE_PREMIUM, STAGGER_STEP } from "@/lib/motion";
 import styles from "./dashboard.module.css";
 import type { ContentIdea } from "@/lib/generateIdeas";
+
+const CARD_HOVER_TRANSITION = { duration: DURATION.base, ease: EASE_PREMIUM };
+
+/** Splits idea text into sentence-ish chunks (kept punctuation) for the line-by-line reveal
+ * on a freshly generated card - actual per-line wrapping isn't knowable without measuring
+ * layout, so sentences are the practical stand-in for "reveals progressively, not all at once". */
+function splitIntoSegments(text: string): string[] {
+  const parts = text.match(/[^.!?׃]+[.!?׃]*/g);
+  return (parts ?? [text]).map((s) => s.trim()).filter(Boolean);
+}
 
 type FeedbackStatus = "used" | "dismissed";
 
@@ -53,6 +66,7 @@ async function fetchIdeas(
 }
 
 export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, remainingBatches }: Props) {
+  const prefersReducedMotion = Boolean(useReducedMotion());
   const [ideas, setIdeas] = useState<ContentIdea[]>(initialIdeas);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(remainingBatches);
@@ -68,6 +82,10 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const openMenuRef = useRef<HTMLDivElement>(null);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  // True once a regenerate has completed at least once in this session - freshly generated
+  // cards get the "moment it's ready" blur-to-clear reveal (see mosaicClass render below)
+  // instead of the scroll-triggered fade-up used for the page's initial server-rendered batch.
+  const [hasFreshBatch, setHasFreshBatch] = useState(false);
 
   // Cycle the "still working" hint text while a full generate/regenerate is in flight,
   // so a multi-second wait doesn't feel stuck - purely cosmetic, no real progress tracking.
@@ -107,6 +125,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
     try {
       const newIdeas = await fetchIdeas(creatorId, IDEA_COUNT, hint, remember);
       setIdeas(newIdeas);
+      setHasFreshBatch(true);
       setFeedback({});
       setRemaining((prev) => Math.max(0, prev - 1));
       setRemember(false);
@@ -209,14 +228,19 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
     return (
       <section>
         <h2 className={styles.preGenTitle}>מה תרצה לספר לי היום?</h2>
-        <textarea
-          className={styles.hintTextarea}
-          value={hint}
-          onChange={(e) => setHint(e.target.value)}
-          placeholder="כיוון לרעיונות היום (רשות) - למשל: 'משהו על חזרה לשגרה'"
-          maxLength={200}
-          rows={3}
-        />
+        <div className={styles.promptStream}>
+          <span className={styles.promptStreamIcon} aria-hidden="true">
+            ✨
+          </span>
+          <textarea
+            className={styles.hintTextarea}
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
+            placeholder="כיוון לרעיונות היום (רשות) - למשל: 'משהו על חזרה לשגרה'"
+            maxLength={200}
+            rows={3}
+          />
+        </div>
         <label className={styles.rememberOption}>
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           <span>לזכור את זה גם בפעמים הבאות</span>
@@ -228,9 +252,9 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
           </p>
         )}
 
-        <Button type="button" variant="primary" onClick={handleRegenerateAll} isLoading={loadingAll}>
+        <SparkButton onClick={handleRegenerateAll} isLoading={loadingAll} className={styles.sparkButtonFull}>
           {loadingAll ? "יוצר רעיונות..." : "צור רעיונות"}
-        </Button>
+        </SparkButton>
         {loadingAll && <p className={styles.loadingHint}>{LOADING_MESSAGES[loadingMessageIndex]}</p>}
       </section>
     );
@@ -247,27 +271,25 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
               : "כבר יצרת מלא ניצוצות תוכן היום ✨ מחר מחכה לך סבב טרי."}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={handleRegenerateAll}
-          isLoading={loadingAll}
-          disabled={remaining <= 0}
-        >
+        <SparkButton onClick={handleRegenerateAll} isLoading={loadingAll} disabled={remaining <= 0}>
           {loadingAll ? "יוצר רעיונות..." : "צור רעיונות מחדש"}
-        </Button>
+        </SparkButton>
       </div>
       {loadingAll && <p className={styles.loadingHint}>{LOADING_MESSAGES[loadingMessageIndex]}</p>}
 
-      <textarea
-        className={styles.hintTextarea}
-        value={hint}
-        onChange={(e) => setHint(e.target.value)}
-        placeholder="כיוון לרעיונות היום (רשות) - למשל: 'משהו על חזרה לשגרה'"
-        maxLength={200}
-        rows={2}
-      />
+      <div className={styles.promptStream}>
+        <span className={styles.promptStreamIcon} aria-hidden="true">
+          ✨
+        </span>
+        <textarea
+          className={styles.hintTextarea}
+          value={hint}
+          onChange={(e) => setHint(e.target.value)}
+          placeholder="כיוון לרעיונות היום (רשות) - למשל: 'משהו על חזרה לשגרה'"
+          maxLength={200}
+          rows={2}
+        />
+      </div>
 
       {error && (
         <p className={styles.errorBanner} role="alert">
@@ -279,10 +301,35 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
         {ideas.map((idea, index) => {
           const isRefreshing = refreshingIndex === index;
           const isExpanding = expandingId === idea.id;
+          const mosaicClass = [
+            styles.ideaCard,
+            index === 0 ? styles.heroCard : "",
+            index === ideas.length - 1 ? styles.ideaCardLast : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const isHero = index === 0;
+          // A freshly-generated batch (just landed from a "צור רעיונות מחדש" call) gets the
+          // "moment it's ready" blur-to-clear reveal instead of the scroll-triggered fade-up
+          // used for the page's initial server-rendered batch - see hasFreshBatch above.
+          const revealProps =
+            hasFreshBatch && !prefersReducedMotion
+              ? {
+                  initial: { opacity: 0, filter: "blur(12px)" },
+                  animate: { opacity: 1, filter: "blur(0px)" },
+                  transition: { duration: DURATION.entrance, ease: EASE_PREMIUM, delay: index * STAGGER_STEP },
+                }
+              : getEntranceMotionProps(prefersReducedMotion, index);
+          // transition lives *inside* whileHover (not as a sibling top-level prop) so it
+          // doesn't collide with revealProps.transition (which carries the stagger delay) -
+          // Framer Motion lets each gesture's own transition override the default per-target.
+          const hoverProps = prefersReducedMotion
+            ? {}
+            : { whileHover: { y: -4, scale: isHero ? 1.008 : 1.015, transition: CARD_HOVER_TRANSITION } };
 
           if (isRefreshing) {
             return (
-              <Card as="article" key={idea.id} className={styles.ideaCard}>
+              <Card as="article" key={idea.id} className={mosaicClass}>
                 <div className={styles.cardTopRow}>
                   <span className={`${styles.cardType} ${styles.skeletonChip}`}>&nbsp;</span>
                 </div>
@@ -294,7 +341,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
           }
 
           return (
-          <Card as="article" key={idea.id} className={styles.ideaCard}>
+          <Card as={motion.article} key={idea.id} className={mosaicClass} {...revealProps} {...hoverProps}>
             <div className={styles.cardTopRow}>
               <div className={styles.cardBadges}>
                 <span
@@ -345,7 +392,24 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
             </div>
             <h3 className={styles.cardTitle}>{idea.title}</h3>
             {idea.rationale && <p className={styles.cardRationale}>💡 {idea.rationale}</p>}
-            <p className={styles.cardDescription}>{idea.description}</p>
+            <p className={styles.cardDescription}>
+              {hasFreshBatch && !prefersReducedMotion
+                ? splitIntoSegments(idea.description).map((segment, segmentIndex) => (
+                    <motion.span
+                      key={segmentIndex}
+                      initial={{ opacity: 0, filter: "blur(4px)" }}
+                      animate={{ opacity: 1, filter: "blur(0px)" }}
+                      transition={{
+                        duration: DURATION.base,
+                        ease: EASE_PREMIUM,
+                        delay: index * STAGGER_STEP + 0.15 + segmentIndex * 0.08,
+                      }}
+                    >
+                      {segment}{" "}
+                    </motion.span>
+                  ))
+                : idea.description}
+            </p>
             {drafts[idea.id] === undefined && copiedIndex === index && (
               <p className={styles.cardStatus}>הועתק ללוח ✓</p>
             )}

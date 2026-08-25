@@ -46,28 +46,82 @@
   color: var(--color-primary);
 }
 
+/* --- Bento Grid: top row (Context + Insight cells) --- */
 .topRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg);
+}
+
+@media (max-width: 47.999rem) {
+  .topRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.contextLabelRow {
   display: flex;
-  align-items: stretch;
-  gap: var(--space-xl);
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.contextLabel {
+  display: block;
+  font-family: var(--font-label), sans-serif;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: hsl(var(--text-muted));
+  margin-bottom: var(--space-sm);
+}
+
+.contextLabelRow .contextLabel {
+  margin-bottom: 0;
+}
+
+.contextSpark {
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.contextSparkSpin {
+  display: inline-block;
+  animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contextSparkSpin {
+    animation: none;
+  }
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .dateCard {
-  flex: 1 1 18rem;
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-card);
+  grid-column: span 2;
   padding: var(--space-2xl) var(--space-xl);
 }
 
 .accuracyCard {
-  flex: 0 1 16rem;
+  grid-column: span 2;
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.accuracyRow {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-card);
-  padding: var(--space-lg) var(--space-xl);
 }
 
 .accuracyRing {
@@ -205,27 +259,80 @@
   margin-top: var(--space-sm);
 }
 
+/* --- Bento Grid: today's ideas, asymmetric mosaic (not a linear list) --- */
 .cardsGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-xl);
+  gap: var(--space-lg);
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 60rem) {
   .cardsGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-flow: dense;
   }
-}
 
-@media (min-width: 75rem) {
-  .cardsGrid {
-    grid-template-columns: repeat(3, 1fr);
+  /* The leading idea of the day - bigger footprint (2x2), bigger type, a resting amber glow. */
+  .heroCard {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .ideaCard {
+    grid-column: span 2;
+  }
+
+  /* The last card of the batch closes the mosaic full-width for visual variety. */
+  .ideaCardLast {
+    grid-column: span 4;
   }
 }
 
 .ideaCard {
   display: flex;
   flex-direction: column;
+  /* border-color/box-shadow stay on native CSS transitions rather than Framer Motion's
+     whileHover: both values reference --primary/--border-glow custom properties, which Framer
+     Motion's animation engine can't tween (no numeric decomposition through a var()), so it
+     would just snap instantly - the browser's own transition engine resolves and interpolates
+     custom properties natively. Framer Motion still drives the y/scale lift below, on the same
+     premium easing curve, so the two systems read as one unified motion. */
+  transition:
+    border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Element-qualified (article.ideaCard, not just .ideaCard) so these reliably beat
+   Card.module.css's plain .card border-color rule regardless of which CSS module happens to
+   load later in the bundle - same specificity otherwise, since the two classes live in
+   separate hashed modules and can't be combined into one compound selector. IdeasBoard always
+   renders idea cards as <Card as="article">. */
+article.ideaCard:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.15);
+}
+
+.heroCard {
+  padding: var(--space-2xl);
+  box-shadow: 0 0 40px hsl(var(--border-glow) / 0.08);
+}
+
+article.heroCard {
+  border-color: hsl(var(--border-glow) / 0.3);
+}
+
+article.heroCard:hover {
+  box-shadow: 0 0 45px hsl(var(--border-glow) / 0.18);
+}
+
+.heroCard .cardTitle {
+  font-family: var(--font-heading), sans-serif;
+  font-size: var(--font-size-2xl);
+  line-height: 1.3;
+}
+
+.heroCard .cardDescription {
+  font-size: var(--font-size-lg);
 }
 
 .cardTopRow {
@@ -471,15 +578,62 @@
   margin-top: 0.15rem;
 }
 
+/* Prompt Stream Input: glassmorphism panel around the hint textarea + a floating spark icon. */
+.promptStream {
+  position: relative;
+  margin-bottom: var(--space-lg);
+}
+
+.promptStreamIcon {
+  position: absolute;
+  top: var(--space-md);
+  inset-inline-end: var(--space-md);
+  font-size: 1.1rem;
+  opacity: 0.7;
+  pointer-events: none;
+  animation: sparkPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes sparkPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promptStreamIcon {
+    animation: none;
+  }
+}
+
 .hintTextarea {
   width: 100%;
-  padding: 0.6rem var(--space-md);
+  padding-block: 0.6rem;
+  padding-inline-start: var(--space-md);
+  padding-inline-end: 2.25rem;
   border-radius: var(--radius-control);
-  border: 1px solid var(--color-border-strong);
-  background: transparent;
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  background: hsl(0 0% 100% / 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: inherit;
   font-family: inherit;
   font-size: var(--font-size-base);
   resize: vertical;
-  margin-bottom: var(--space-lg);
+  transition: box-shadow 200ms ease;
+}
+
+.hintTextarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--primary));
+}
+
+.sparkButtonFull {
+  width: 100%;
 }

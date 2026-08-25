@@ -13,31 +13,13 @@ import LogoutButton from "./LogoutButton";
 import DeleteAccountButton from "./DeleteAccountButton";
 import IdeasBoard from "./IdeasBoard";
 import AccuracyGauge from "./AccuracyGauge";
+import ThemeProvider from "./ThemeProvider";
+import ContextCard from "./ContextCard";
 import styles from "./dashboard.module.css";
 
 export const metadata: Metadata = {
   title: "דשבורד | ניצוץ",
 };
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("he-IL", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Jerusalem",
-  });
-}
-
-function formatGregorianWithWeekday(isoDate: string): string {
-  const date = new Date(`${isoDate}T12:00:00`);
-  const weekday = date.toLocaleDateString("he-IL", { weekday: "long", timeZone: "Asia/Jerusalem" });
-  const dayMonthYear = date.toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Asia/Jerusalem",
-  });
-  return `${weekday}, ${dayMonthYear}`;
-}
 
 export default async function DashboardPage() {
   const creator = await getCurrentCreator();
@@ -79,74 +61,57 @@ export default async function DashboardPage() {
   ].filter((fact): fact is string => fact !== null);
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerInfo}>
-          <h1>ניצוץ</h1>
-          <p className={styles.subtitle} title={displayName}>
-            שלום, {displayName}
-          </p>
-          {streak.count > 1 && (
-            <p className={styles.streakLine}>
-              🔥 רצף של {streak.count} ימים
-              {streak.justFroze && <span className={styles.streakFrozenNote}> · שמרת על יום המנוחה - הרצף שלך נשמר 🕯️</span>}
+    <ThemeProvider dailyInfo={dailyInfo}>
+      <main className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.headerInfo}>
+            <h1>ניצוץ</h1>
+            <p className={styles.subtitle} title={displayName}>
+              שלום, {displayName}
             </p>
-          )}
+            {streak.count > 1 && (
+              <p className={styles.streakLine}>
+                🔥 רצף של {streak.count} ימים
+                {streak.justFroze && (
+                  <span className={styles.streakFrozenNote}> · שמרת על יום המנוחה - הרצף שלך נשמר 🕯️</span>
+                )}
+              </p>
+            )}
+          </div>
+          <div className={styles.headerActions}>
+            <LogoutButton />
+            <DeleteAccountButton />
+          </div>
+        </header>
+
+        <div className={styles.topRow}>
+          <ContextCard dailyInfo={dailyInfo} />
+
+          <AccuracyGauge
+            score={accuracyScore}
+            label={getAccuracyLabel(accuracyScore)}
+            transparency={{
+              niche: profile.niche,
+              vocabularyStyle: profile.vocabularyStyle,
+              toneStyle: profile.toneStyle,
+              platforms: profile.platforms,
+              personalFacts,
+              persistentContext: profile.persistentContext,
+              usedCount: accuracyBreakdown.usedCount,
+              dismissedCount: accuracyBreakdown.dismissedCount,
+              expansionsCount: accuracyBreakdown.expansionsCount,
+              recentContextSummary: getRecentContext(creator.id),
+            }}
+          />
         </div>
-        <div className={styles.headerActions}>
-          <LogoutButton />
-          <DeleteAccountButton />
-        </div>
-      </header>
 
-      <div className={styles.topRow}>
-        <section className={styles.dateCard}>
-          <h2 className={styles.dateHebrew}>{dailyInfo.hebrewDate.formatted}</h2>
-          <p className={styles.dateGregorian}>{formatGregorianWithWeekday(dailyInfo.gregorianDate)}</p>
-
-          {dailyInfo.events.length > 0 ? (
-            <ul className={styles.eventsList}>
-              {dailyInfo.events.map((event) => (
-                <li key={event.title}>{event.hebrew ?? event.title}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.noEvents}>אין אירוע מיוחד היום</p>
-          )}
-
-          {dailyInfo.shabbat.parasha && (
-            <p className={styles.shabbatLine}>
-              פרשת השבוע: {dailyInfo.shabbat.parasha}
-              {dailyInfo.shabbat.candleLighting && ` · כניסת שבת ${formatTime(dailyInfo.shabbat.candleLighting)}`}
-              {dailyInfo.shabbat.havdalah && ` · יציאת שבת ${formatTime(dailyInfo.shabbat.havdalah)}`}
-            </p>
-          )}
-        </section>
-
-        <AccuracyGauge
-          score={accuracyScore}
-          label={getAccuracyLabel(accuracyScore)}
-          transparency={{
-            niche: profile.niche,
-            vocabularyStyle: profile.vocabularyStyle,
-            toneStyle: profile.toneStyle,
-            platforms: profile.platforms,
-            personalFacts,
-            persistentContext: profile.persistentContext,
-            usedCount: accuracyBreakdown.usedCount,
-            dismissedCount: accuracyBreakdown.dismissedCount,
-            expansionsCount: accuracyBreakdown.expansionsCount,
-            recentContextSummary: getRecentContext(creator.id),
-          }}
+        <IdeasBoard
+          creatorId={creator.id}
+          initialIdeas={initialIdeas}
+          initialFeedback={initialFeedback}
+          remainingBatches={remainingBatches}
         />
-      </div>
-
-      <IdeasBoard
-        creatorId={creator.id}
-        initialIdeas={initialIdeas}
-        initialFeedback={initialFeedback}
-        remainingBatches={remainingBatches}
-      />
-    </main>
+      </main>
+    </ThemeProvider>
   );
 }

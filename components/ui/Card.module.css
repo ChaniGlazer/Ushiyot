@@ -1,6 +1,8 @@
+/* Bento tile base: one step lighter than the page background (--surface-1), not flush with
+   it, so every card reads as a distinct elevated tile rather than blending into the page. */
 .card {
-  background: var(--background);
-  border: 1px solid var(--color-border);
+  background: hsl(var(--surface-1));
+  border: 1px solid hsl(var(--card-border));
   border-radius: var(--radius-card);
   padding: var(--space-xl);
 }

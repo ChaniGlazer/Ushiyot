@@ -14,3 +14,6 @@ export { default as Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
 
 export { default as Spinner } from "./Spinner";
+
+export { default as SparkButton } from "./SparkButton";
+export type { SparkButtonProps } from "./SparkButton";

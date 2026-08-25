@@ -16,6 +16,8 @@ export type HebcalEvent = {
   category: string;
   hebrew?: string;
   memo?: string;
+  /** True for Yom Tov days (melacha forbidden) - used by lib/themeMode.ts's holiday mode. */
+  yomtov?: boolean;
 };
 
 export type ShabbatTimes = {
@@ -98,6 +100,7 @@ async function getDayEvents(gregorianDate: string): Promise<HebcalEvent[]> {
     category: item.category,
     hebrew: item.hebrew,
     memo: item.memo,
+    yomtov: item.yomtov,
   }));
 }
 

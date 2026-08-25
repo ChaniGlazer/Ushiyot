@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Button, Card, Input, Select, Spinner } from "@/components/ui";
+import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import styles from "./onboarding.module.css";
 import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
 
@@ -57,6 +59,7 @@ export default function OnboardingForm() {
   const [completed, setCompleted] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const stepSectionRef = useRef<HTMLElement>(null);
+  const entranceProps = useEntranceMotion();
 
   // Restore a saved draft after mount only (not during the initial render) so the
   // server-rendered HTML and the first client render still match - avoids a hydration mismatch.
@@ -313,7 +316,7 @@ export default function OnboardingForm() {
       <Link href="/" className={styles.logoLink}>
         ניצוץ
       </Link>
-      <Card className={styles.card}>
+      <Card as={motion.div} className={styles.card} {...entranceProps}>
         <div className={styles.progress}>
           <div className={styles.progressLabel}>
             <span>

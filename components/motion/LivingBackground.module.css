@@ -1,0 +1,37 @@
+.container {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.blobPrimary {
+  top: -10%;
+  inset-inline-end: -10%;
+  width: 40vw;
+  height: 40vw;
+  background: hsl(var(--primary) / 0.12);
+}
+
+.blobFlame {
+  bottom: -15%;
+  inset-inline-start: -10%;
+  width: 45vw;
+  height: 45vw;
+  background: hsl(var(--flame-accent) / 0.1);
+}
+
+.blobPrimarySoft {
+  top: 35%;
+  inset-inline-start: 30%;
+  width: 30vw;
+  height: 30vw;
+  background: hsl(var(--primary) / 0.08);
+}

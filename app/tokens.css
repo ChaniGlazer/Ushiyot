@@ -1,57 +1,92 @@
 /*
- * ניצוץ — Design Tokens
- * שכבת עיצוב משותפת: צבעים, רדיוסים, ריווחים וטיפוגרפיה.
- * הערכים הוסקו מהשימוש בפועל במסכים הקיימים (ראו מיפוי ה-UX).
- * כל צבע מוגדר גם ל-light וגם ל-dark (prefers-color-scheme).
+ * ניצוץ — Design Tokens: Obsidian Flame and Heavenly Light.
+ * זהות ויזואלית כהה, פרימיום וטכנולוגית קבועה אחת (לא light/dark toggle), מוארת בניצוץ
+ * זהב-ענבר בודד. הבלוק הראשון למטה הוא הבסיס הרשמי החדש (HSL triplets, נצרך כ-hsl(var())).
+ * הבלוק השני הוא השכבה הישנה שרוב הקומפוננטות הקיימות עדיין תלויות בה - נעדכן אותה
+ * קומפוננטה-קומפוננטה בשלבים הבאים; בינתיים היא מוצמדת (alias) למקורות החדשים כדי שכל
+ * האתר יקבל את הזהות החדשה כבר עכשיו בלי לגעת בכל קובץ.
  */
 
 :root {
-  /* --- Surface --- */
-  --background: #ffffff;
-  --foreground: #171717;
-  /* One step up from --background - for a fixed page header, distinct from regular content cards */
-  --color-bg-elevated: #f4f5f7;
+  /* --- Base surfaces ---
+   * Raw HSL triplets (the -hsl names) are what Tailwind's @theme inline block in globals.css
+   * consumes to generate bg-background/text-foreground/etc. --background/--foreground
+   * themselves stay wrapped in hsl() - ~10 existing CSS Modules already do
+   * `background: var(--background)` etc. directly, expecting a ready-to-use color, not a
+   * bare triplet. */
+  --background-hsl: 222 35% 7%; /* #0A0E17 Obsidian */
+  --foreground-hsl: 210 24% 96%; /* #F0F4F8 */
+  --background: hsl(var(--background-hsl));
+  --foreground: hsl(var(--foreground-hsl));
 
-  /* --- Primary (הכחול הקיים בכל האפליקציה) --- */
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-active: #1e40af;
-  --color-primary-subtle: rgba(37, 99, 235, 0.12);
-  --color-primary-border: rgba(37, 99, 235, 0.35);
-  --color-on-primary: #ffffff;
+  --surface-1: 222 30% 10%; /* #121723 כרטיסי Bento */
+  --surface-2: 222 28% 15%; /* #1C2333 hover/מודאלים */
+  --card-border: 222 20% 18%;
 
-  /* --- Success (כפתור "השתמשתי בזה", סטטוס DB תקין) --- */
-  /* מוכהה מ-#1a7f37 כדי לעמוד ביחס ניגודיות 4.5:1 גם על גבי success-subtle, לא רק על הרקע */
-  --color-success: #197934;
-  --color-success-subtle: rgba(26, 127, 55, 0.12);
-  --color-on-success: #ffffff;
+  --text-muted: 214 16% 62%; /* #8C9BAE */
 
-  /* --- Danger (מחיקה, "לא בשבילי", חריגה מתקרה) --- */
-  --color-danger: #c0392b;
-  --color-danger-hover: #a5311f;
-  --color-danger-subtle: rgba(192, 57, 43, 0.12);
-  --color-danger-border: rgba(192, 57, 43, 0.4);
-  --color-on-danger: #ffffff;
+  /* --- Brand accent: Electric Amber Spark --- */
+  --primary: 37 100% 50%; /* #FF9E00 */
+  --primary-foreground: 222 47% 7%;
+  --flame-accent: 20 100% 50%; /* #FF5500 */
+  --border-glow: 37 100% 50%; /* בשימוש עם אלפא ~0.3 */
 
-  /* --- Error (טקסט שגיאת ולידציה בטפסים) --- */
-  /* מוכהה מ-#e05555 (היה 3.75:1 על רקע לבן - נכשל ב-4.5:1) */
-  --color-error: #be4848;
+  /* --- Shabbat/שקיעה: דריסת theme דינמית (מופעלת ע"י class ברמת ה-root, ראו ThemeProvider) --- */
+  --shabbat-background: 260 30% 9%; /* #120E1E Twilight Violet */
+  --shabbat-accent: 18 88% 63%; /* #F4A261 Sunset Gold */
 
-  /* --- Warning (אין תקדים קיים באפליקציה - נוסף כדי להשלים את סט הסטטוסים) --- */
-  /* מוכהה מ-#b45309 כדי לעמוד ביחס ניגודיות 4.5:1 גם על גבי warning-subtle */
-  --color-warning: #a24b08;
-  --color-warning-subtle: rgba(180, 83, 9, 0.12);
+  /* --- חג: דריסת theme דינמית --- */
+  --holiday-background: 152 45% 6%; /* #0B1914 Deep Emerald */
+  --holiday-accent: 51 100% 50%; /* #FFD700 Imperial Gold */
+
+  /* --- יום זיכרון/תענית: דריסת theme דינמית --- */
+  --solemn-background: 240 3% 8%; /* #0F0F10 Monochrome Slate */
+  --solemn-accent: 215 19% 45%; /* #64748B Muted Steel */
+
+  /* ============================================================
+   * שכבה ישנה (שם-לוגי שונה) — alias לטוקנים החדשים למעלה.
+   * ============================================================ */
+
+  /* --- Surface (legacy names) --- */
+  --color-bg-elevated: hsl(var(--surface-1));
+
+  /* --- Primary --- */
+  --color-primary: hsl(var(--primary));
+  --color-primary-hover: hsl(var(--flame-accent));
+  --color-primary-active: hsl(20 100% 42%);
+  --color-primary-subtle: hsl(var(--primary) / 0.12);
+  --color-primary-border: hsl(var(--primary) / 0.35);
+  --color-on-primary: hsl(var(--primary-foreground));
+
+  /* --- Success --- */
+  --color-success: #22c55e;
+  --color-success-subtle: rgba(34, 197, 94, 0.16);
+  --color-on-success: #0a0a0a;
+
+  /* --- Danger --- */
+  --color-danger: #ef4444;
+  --color-danger-hover: #f87171;
+  --color-danger-subtle: rgba(239, 68, 68, 0.16);
+  --color-danger-border: rgba(239, 68, 68, 0.45);
+  --color-on-danger: #0a0a0a;
+
+  /* --- Error (טקסט שגיאת ולידציה) --- */
+  --color-error: #f87171;
+
+  /* --- Warning --- */
+  --color-warning: #f59e0b;
+  --color-warning-subtle: rgba(245, 158, 11, 0.16);
 
   /* --- Neutral / borders --- */
-  --color-border-subtle: rgba(128, 128, 128, 0.15);
-  --color-border: rgba(128, 128, 128, 0.25);
-  --color-border-strong: rgba(128, 128, 128, 0.35);
-  --color-shadow: rgba(0, 0, 0, 0.08);
+  --color-border-subtle: hsl(var(--card-border) / 0.5);
+  --color-border: hsl(var(--card-border));
+  --color-border-strong: hsl(var(--card-border) / 1.4);
+  --color-shadow: rgba(0, 0, 0, 0.4);
 
   /* --- Radius --- */
   --radius-sm: 0.35rem;
   --radius-control: 0.5rem;
-  --radius-card: 1rem;
+  --radius-card: 0.75rem; /* 12px - אחיד לכל כרטיסי ה-Bento */
   --radius-full: 999px;
 
   /* --- Spacing (4 / 8 / 12 / 16 / 24 / 32px) --- */
@@ -62,52 +97,40 @@
   --space-xl: 1.5rem;
   --space-2xl: 2rem;
 
-  /* --- Typography --- */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.85rem;
-  --font-size-base: 1rem;
+  /* --- Typography (עברית: line-height תמיד 1.5-1.6, לא letter-spacing חיובי גדול בכותרות) --- */
+  --font-size-xs: 0.75rem; /* תגיות/מיקרו-לייבל - Rubik 500 */
+  --font-size-sm: 0.875rem; /* Small - Heebo 400/1.5 */
+  --font-size-base: 1rem; /* Body - Heebo 400/1.67 */
   --font-size-lg: 1.05rem;
-  --font-size-xl: 1.3rem;
-  --font-size-2xl: 2rem;
+  --font-size-xl: 1.5rem; /* H2 - IBM Plex Sans Hebrew 600/1.4 */
+  --font-size-2xl: 2.25rem; /* H1 - IBM Plex Sans Hebrew 700/1.3/-0.01em */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --color-bg-elevated: #17181a;
+/*
+ * Dynamic theme overrides, applied by app/dashboard/ThemeProvider.tsx as a class on <html>
+ * based on live Hebcal data - not a re-render of the React tree. Overriding --background-hsl/
+ * --background/--primary here is enough: every legacy --color-* alias in the block above
+ * already reads through var(--primary) etc., so the whole app's palette follows automatically,
+ * no need to redeclare each alias per mode.
+ */
+:root.theme-shabbat {
+  --background-hsl: var(--shabbat-background);
+  --background: hsl(var(--background-hsl));
+  --primary: var(--shabbat-accent);
+}
 
-    /* מוכהה מ-#3b82f6/#60a5fa/#2563eb - הצבע הבהיר המקורי נתן רק 3.68:1 לטקסט לבן על הכפתור (נכשל ב-4.5:1) */
-    --color-primary: #326fd1;
-    --color-primary-hover: #2c62b8;
-    --color-primary-active: #26549f;
-    --color-primary-subtle: rgba(59, 130, 246, 0.16);
-    --color-primary-border: rgba(59, 130, 246, 0.4);
-    --color-on-primary: #ffffff;
+:root.theme-holiday {
+  --background-hsl: var(--holiday-background);
+  --background: hsl(var(--background-hsl));
+  --primary: var(--holiday-accent);
+}
 
-    --color-success: #22c55e;
-    --color-success-subtle: rgba(34, 197, 94, 0.16);
-    /* הצבע הבהיר של success/danger ב-dark mode עצמו לא עומד ב-4.5:1 מול טקסט לבן - טקסט כהה על המילוי כן */
-    --color-on-success: #0a0a0a;
+:root.theme-solemn {
+  --background-hsl: var(--solemn-background);
+  --background: hsl(var(--background-hsl));
+  --primary: var(--solemn-accent);
+}
 
-    --color-danger: #ef4444;
-    --color-danger-hover: #f87171;
-    --color-danger-subtle: rgba(239, 68, 68, 0.16);
-    --color-danger-border: rgba(239, 68, 68, 0.45);
-    --color-on-danger: #0a0a0a;
-
-    --color-error: #f87171;
-
-    --color-warning: #f59e0b;
-    --color-warning-subtle: rgba(245, 158, 11, 0.16);
-
-    --color-border-subtle: rgba(160, 160, 160, 0.15);
-    --color-border: rgba(160, 160, 160, 0.25);
-    --color-border-strong: rgba(160, 160, 160, 0.35);
-    --color-shadow: rgba(0, 0, 0, 0.4);
-  }
-
-  html {
-    color-scheme: dark;
-  }
+html {
+  color-scheme: dark;
 }

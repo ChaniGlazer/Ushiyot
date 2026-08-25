@@ -1,0 +1,152 @@
+/* Wraps the button so the loading state can show a rotating conic-gradient "border" - the wrap
+   supplies the gradient fill, a thin padding gap reveals it as a ring, and the button's own
+   opaque background covers the rest. Always present (not conditionally mounted) so toggling
+   the spinning state never remounts the button/loses its Framer Motion animation state. */
+.borderWrap {
+  /* Deliberately no explicit width: a plain block div naturally stretches full-width in
+     normal flow (the pre-generation "צור רעיונות" case) but shrinks to content width as a
+     flex item (the compact "צור רעיונות מחדש" button next to the header text) - exactly
+     matching how the button sized itself before this wrap existed. The inner .button's own
+     width: 100% (below) fills whatever size that ends up being. */
+  position: relative;
+  border-radius: var(--radius-control);
+}
+
+.borderWrapSpinning {
+  padding: 2px;
+  overflow: hidden;
+}
+
+/* The rotating gradient lives on its own oversized, absolutely-positioned layer behind the
+   button (not as a transform on .borderWrap itself) - rotating the wrap directly would spin
+   the button and its label along with it. Oversized + centered so every corner of the padding
+   box stays covered by the gradient at every angle; .borderWrap's overflow: hidden clips it
+   back down to the rounded-rect ring shape. */
+.borderWrapSpinning::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    hsl(var(--primary-foreground) / 0.9) 12%,
+    transparent 28%,
+    transparent 100%
+  );
+  animation: spinBorder 1.5s linear infinite;
+}
+
+@keyframes spinBorder {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+  transition: box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gradient overlay, faded in on hover - the resting state is a flat --primary fill. */
+.button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, #ff9e00, #ff5500);
+  opacity: 0;
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.button:hover:not(:disabled) {
+  box-shadow: 0 0 35px hsl(var(--primary) / 0.8);
+}
+
+.button:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button:focus-visible {
+  outline: 2px solid hsl(var(--primary-foreground));
+  outline-offset: 2px;
+}
+
+.label {
+  position: relative;
+  z-index: 1;
+}
+
+.loading .label {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary-foreground) / 0.4) 0%,
+    hsl(var(--primary-foreground)) 50%,
+    hsl(var(--primary-foreground) / 0.4) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.particles {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  bottom: 0.6rem;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: hsl(var(--primary-foreground));
+  box-shadow: 0 0 6px 1px hsl(var(--primary-foreground) / 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .button::before,
+  .borderWrapSpinning,
+  .loading .label {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Modal } from "@/components/ui";
+import { motion } from "framer-motion";
+import { Button, Card, Modal } from "@/components/ui";
+import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import styles from "./dashboard.module.css";
 
 const RADIUS = 42;
@@ -29,9 +31,12 @@ type Props = {
 export default function AccuracyGauge({ score, label, transparency }: Props) {
   const [open, setOpen] = useState(false);
   const offset = CIRCUMFERENCE * (1 - score / 100);
+  const entranceProps = useEntranceMotion(1);
 
   return (
-    <div className={styles.accuracyCard}>
+    <Card as={motion.div} className={styles.accuracyCard} {...entranceProps}>
+      <span className={styles.contextLabel}>דיוק הפרופיל</span>
+      <div className={styles.accuracyRow}>
       <svg viewBox="0 0 100 100" width="72" height="72" className={styles.accuracyRing} aria-hidden="true">
         <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="var(--color-border)" strokeWidth="9" />
         <circle
@@ -55,6 +60,7 @@ export default function AccuracyGauge({ score, label, transparency }: Props) {
         <button type="button" className={styles.accuracyLink} onClick={() => setOpen(true)}>
           מה המערכת יודעת עליי?
         </button>
+      </div>
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)} title="מה המערכת יודעת עליי">
@@ -99,6 +105,6 @@ export default function AccuracyGauge({ score, label, transparency }: Props) {
           </Button>
         </div>
       </Modal>
-    </div>
+    </Card>
   );
 }

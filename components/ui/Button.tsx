@@ -1,6 +1,8 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ComponentPropsWithoutRef, ElementType } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { DURATION, EASE_PREMIUM, type MotionConflictingProps } from "@/lib/motion";
 import Spinner from "./Spinner";
 import styles from "./Button.module.css";
 
@@ -31,11 +33,35 @@ export default function Button<T extends ElementType = "button">({
 }: ButtonProps<T>) {
   const Component = as ?? "button";
   const classNames = [styles.button, styles[variant], styles[size], className].filter(Boolean).join(" ");
-  const extraProps: Partial<ButtonHTMLAttributes<HTMLButtonElement>> =
-    Component === "button" ? { disabled: disabled || isLoading, "aria-busy": isLoading || undefined } : {};
+  const prefersReducedMotion = useReducedMotion();
+
+  // Depth-on-hover + press feedback only applies to the plain <button> case (see module docs) -
+  // an arbitrary polymorphic `as` (e.g. Link-styled-as-button) renders unanimated, unchanged.
+  if (Component === "button") {
+    return (
+      <motion.button
+        className={classNames}
+        disabled={disabled || isLoading}
+        aria-busy={isLoading || undefined}
+        whileHover={prefersReducedMotion || disabled || isLoading ? undefined : { y: -2 }}
+        whileTap={prefersReducedMotion || disabled || isLoading ? undefined : { scale: 0.97 }}
+        transition={{ duration: DURATION.fast, ease: EASE_PREMIUM }}
+        {...(props as Omit<ButtonHTMLAttributes<HTMLButtonElement>, MotionConflictingProps>)}
+      >
+        {isLoading && <Spinner />}
+        {children}
+      </motion.button>
+    );
+  }
+
+  // Polymorphic `as` components are a known hard case for TS's JSX inference
+  // (LibraryManagedAttributes<T, any> can't be derived losslessly from a generic T here); the
+  // public API (ButtonProps<T>) stays fully typed, this cast is scoped to just this one spread.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const polymorphicProps = props as any;
 
   return (
-    <Component className={classNames} {...extraProps} {...props}>
+    <Component className={classNames} {...polymorphicProps}>
       {isLoading && <Spinner />}
       {children}
     </Component>

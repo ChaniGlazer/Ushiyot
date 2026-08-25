@@ -1,3 +1,43 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+/*
+ * Maps the raw HSL-triplet tokens from tokens.css (:root) onto Tailwind v4's utility-class
+ * generator - e.g. --color-primary here makes bg-primary/text-primary/border-primary exist.
+ * "inline" so it resolves at each utility's own cascade point rather than being hoisted into
+ * :root, which matters once the Shabbat/holiday/solemn theme classes (see ThemeProvider,
+ * step 2) override --background/--primary/etc. further down the tree.
+ */
+@theme inline {
+  --color-background: hsl(var(--background-hsl));
+  --color-foreground: hsl(var(--foreground-hsl));
+  --color-surface-1: hsl(var(--surface-1));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-card-border: hsl(var(--card-border));
+  --color-text-muted: hsl(var(--text-muted));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-flame-accent: hsl(var(--flame-accent));
+  --color-border-glow: hsl(var(--border-glow));
+
+  --font-heading: var(--font-ibm-plex-sans-hebrew);
+  --font-sans: var(--font-heebo);
+  --font-label: var(--font-rubik);
+}
+
+/* Full reduced-motion opt-out, per the design brief - covers Tailwind/Framer/GSAP-driven
+   animations alike since it targets the CSS properties directly, not a specific library. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 html {
   height: 100%;
 }
