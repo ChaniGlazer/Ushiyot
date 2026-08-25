@@ -9,8 +9,17 @@
   color: var(--foreground);
 }
 
+.selectWrapper {
+  position: relative;
+}
+
 .select {
   width: 100%;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius-control);
   border: 1px solid var(--color-border-strong);
@@ -18,12 +27,32 @@
   color: inherit;
   font-family: inherit;
   font-size: var(--font-size-base);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease-premium),
+    box-shadow 0.2s var(--ease-premium);
 }
 
-.select:focus {
+.select:hover {
+  border-color: var(--color-primary);
+}
+
+.select:focus-visible {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+
+.selectLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: hsl(var(--text-muted));
 }
 
 .selectError {
@@ -33,4 +62,46 @@
 .errorText {
   color: var(--color-error);
   font-size: var(--font-size-xs);
+}
+
+.panel {
+  position: absolute;
+  z-index: 30;
+  inset-inline: 0;
+  top: calc(100% + 0.25rem);
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: hsl(var(--surface-2));
+  border: 1px solid hsl(var(--card-border));
+  border-radius: var(--radius-control);
+  box-shadow: 0 12px 30px hsl(0 0% 0% / 0.4);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+}
+
+.optionHighlighted {
+  background: hsl(var(--primary) / 0.15);
+}
+
+.optionSelected {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.checkmark {
+  flex-shrink: 0;
+  color: hsl(var(--primary));
 }
