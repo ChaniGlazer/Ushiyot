@@ -2,7 +2,14 @@
 
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import type { ButtonHTMLAttributes } from "react";
-import { DURATION, EASE_PREMIUM, PARTICLE_RISE_DURATION, PARTICLE_STAGGER, type MotionConflictingProps } from "@/lib/motion";
+import {
+  IDLE_FLOAT_TRANSITION,
+  IDLE_FLOAT_Y,
+  PARTICLE_RISE_DURATION,
+  PARTICLE_STAGGER,
+  SPRING_SOFT,
+  type MotionConflictingProps,
+} from "@/lib/motion";
 import styles from "./SparkButton.module.css";
 
 export type SparkButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, MotionConflictingProps> & {
@@ -29,12 +36,17 @@ export default function SparkButton({ isLoading = false, disabled, className, ch
         className={[styles.button, isLoading ? styles.loading : "", className].filter(Boolean).join(" ")}
         disabled={disabled || isLoading}
         aria-busy={isLoading || undefined}
+        // Idle float at rest (base animate/transition) - whileHover/whileTap below temporarily
+        // take over the same y/scale while active, then hand back to this loop, per Framer
+        // Motion's normal gesture-priority behavior.
+        animate={prefersReducedMotion || isLoading ? undefined : { y: IDLE_FLOAT_Y }}
+        transition={isLoading ? undefined : IDLE_FLOAT_TRANSITION}
         whileHover={
           prefersReducedMotion || disabled || isLoading
             ? undefined
-            : { y: -2, transition: { duration: DURATION.fast, ease: EASE_PREMIUM } }
+            : { y: -5, scale: 1.02, transition: SPRING_SOFT }
         }
-        whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+        whileTap={prefersReducedMotion ? undefined : { scale: 0.98, transition: SPRING_SOFT }}
         {...props}
       >
         <span className={styles.label}>{children}</span>

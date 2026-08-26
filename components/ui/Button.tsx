@@ -2,7 +2,7 @@
 
 import type { ButtonHTMLAttributes, ComponentPropsWithoutRef, ElementType } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { DURATION, EASE_PREMIUM, type MotionConflictingProps } from "@/lib/motion";
+import { SPRING_SOFT, type MotionConflictingProps } from "@/lib/motion";
 import Spinner from "./Spinner";
 import styles from "./Button.module.css";
 
@@ -43,9 +43,9 @@ export default function Button<T extends ElementType = "button">({
         className={classNames}
         disabled={disabled || isLoading}
         aria-busy={isLoading || undefined}
-        whileHover={prefersReducedMotion || disabled || isLoading ? undefined : { y: -2 }}
+        whileHover={prefersReducedMotion || disabled || isLoading ? undefined : { y: -3, scale: 1.015 }}
         whileTap={prefersReducedMotion || disabled || isLoading ? undefined : { scale: 0.97 }}
-        transition={{ duration: DURATION.fast, ease: EASE_PREMIUM }}
+        transition={SPRING_SOFT}
         {...(props as Omit<ButtonHTMLAttributes<HTMLButtonElement>, MotionConflictingProps>)}
       >
         {isLoading && <Spinner />}

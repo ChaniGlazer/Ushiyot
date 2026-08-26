@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Button, Card, SparkButton } from "@/components/ui";
 import { getEntranceMotionProps } from "@/lib/useEntranceMotion";
-import { DURATION, EASE_PREMIUM, STAGGER_STEP } from "@/lib/motion";
+import { DURATION, EASE_PREMIUM, SPRING_SOFT, STAGGER_STEP } from "@/lib/motion";
 import styles from "./dashboard.module.css";
 import type { ContentIdea } from "@/lib/generateIdeas";
 
-const CARD_HOVER_TRANSITION = { duration: DURATION.base, ease: EASE_PREMIUM };
+const CARD_HOVER_TRANSITION = SPRING_SOFT;
 
 /** Splits idea text into sentence-ish chunks (kept punctuation) for the line-by-line reveal
  * on a freshly generated card - actual per-line wrapping isn't knowable without measuring
@@ -330,7 +330,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
           // Framer Motion lets each gesture's own transition override the default per-target.
           const hoverProps = prefersReducedMotion
             ? {}
-            : { whileHover: { y: -4, scale: isHero ? 1.008 : 1.015, transition: CARD_HOVER_TRANSITION } };
+            : { whileHover: { y: isHero ? -6 : -9, scale: isHero ? 1.012 : 1.025, transition: CARD_HOVER_TRANSITION } };
 
           if (isRefreshing) {
             return (
