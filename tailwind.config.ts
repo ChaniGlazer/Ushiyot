@@ -13,6 +13,24 @@ const config: Config = {
         sans: ["var(--font-heebo)", "system-ui", "sans-serif"],
         label: ["var(--font-rubik)", "system-ui", "sans-serif"],
       },
+      // Used by SparkLoadingExperience (components/ui/SparkLoadingExperience.tsx) - a slow,
+      // calm shimmer sweep for the skeleton cards, and a short rise-and-fade for the energy
+      // icon's particle burst.
+      keyframes: {
+        "spark-shimmer": {
+          "0%": { backgroundPosition: "150% 0" },
+          "100%": { backgroundPosition: "-150% 0" },
+        },
+        "spark-particle-rise": {
+          "0%": { transform: "translateY(0) scale(1)", opacity: "0" },
+          "20%": { opacity: "1" },
+          "100%": { transform: "translateY(-2.5rem) scale(0.4)", opacity: "0" },
+        },
+      },
+      animation: {
+        "spark-shimmer": "spark-shimmer 3.2s ease-in-out infinite",
+        "spark-particle-rise": "spark-particle-rise 0.9s ease-out forwards",
+      },
     },
   },
   plugins: [tailwindcssAnimate],

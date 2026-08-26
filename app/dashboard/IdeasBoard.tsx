@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Button, Card, SparkButton } from "@/components/ui";
+import { Button, Card, SparkButton, SparkLoadingExperience } from "@/components/ui";
 import { getEntranceMotionProps } from "@/lib/useEntranceMotion";
 import { DURATION, EASE_PREMIUM, SPRING_SOFT, STAGGER_STEP } from "@/lib/motion";
 import styles from "./dashboard.module.css";
@@ -19,12 +19,6 @@ function splitIntoSegments(text: string): string[] {
 }
 
 type FeedbackStatus = "used" | "dismissed";
-
-const LOADING_MESSAGES = [
-  "בודק/ת את היום העברי...",
-  "חושב/ת על רעיונות מתאימים לך...",
-  "מתאים/ה את הטון האישי שלך...",
-];
 
 type Props = {
   creatorId: number;
@@ -81,21 +75,15 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
   const [expandingId, setExpandingId] = useState<number | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const openMenuRef = useRef<HTMLDivElement>(null);
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   // True once a regenerate has completed at least once in this session - freshly generated
   // cards get the "moment it's ready" blur-to-clear reveal (see mosaicClass render below)
   // instead of the scroll-triggered fade-up used for the page's initial server-rendered batch.
   const [hasFreshBatch, setHasFreshBatch] = useState(false);
-
-  // Cycle the "still working" hint text while a full generate/regenerate is in flight,
-  // so a multi-second wait doesn't feel stuck - purely cosmetic, no real progress tracking.
-  useEffect(() => {
-    if (!loadingAll) return;
-    const interval = setInterval(() => {
-      setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
-    }, 2200);
-    return () => clearInterval(interval);
-  }, [loadingAll]);
+  // Gates the real cards grid during a regenerate: goes false the instant a regenerate starts,
+  // and only comes back true once SparkLoadingExperience's own fade-out finishes (its
+  // onComplete callback) - not the instant loadingAll flips false - so the loading theater
+  // never gets cut off mid-animation by the real cards popping in underneath it.
+  const [showResults, setShowResults] = useState(true);
 
   // Close the open card menu on outside click or Escape.
   useEffect(() => {
@@ -120,7 +108,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
 
   async function handleRegenerateAll() {
     setLoadingAll(true);
-    setLoadingMessageIndex(0);
+    setShowResults(false);
     setError(null);
     try {
       const newIdeas = await fetchIdeas(creatorId, IDEA_COUNT, hint, remember);
@@ -255,7 +243,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
         <SparkButton onClick={handleRegenerateAll} isLoading={loadingAll} className={styles.sparkButtonFull}>
           {loadingAll ? "יוצר רעיונות..." : "צור רעיונות"}
         </SparkButton>
-        {loadingAll && <p className={styles.loadingHint}>{LOADING_MESSAGES[loadingMessageIndex]}</p>}
+        <SparkLoadingExperience isLoading={loadingAll} />
       </section>
     );
   }
@@ -280,7 +268,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
           </SparkButton>
         </div>
       </div>
-      {loadingAll && <p className={styles.loadingHint}>{LOADING_MESSAGES[loadingMessageIndex]}</p>}
+      <SparkLoadingExperience isLoading={loadingAll} onComplete={() => setShowResults(true)} />
 
       <div className={styles.promptStream}>
         <span className={styles.promptStreamIcon} aria-hidden="true">
@@ -302,6 +290,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
         </p>
       )}
 
+      {showResults && (
       <div className={styles.cardsGrid}>
         {ideas.map((idea, index) => {
           const isRefreshing = refreshingIndex === index;
@@ -469,6 +458,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
           );
         })}
       </div>
+      )}
     </section>
   );
 }
