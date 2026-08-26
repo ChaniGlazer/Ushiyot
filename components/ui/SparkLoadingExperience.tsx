@@ -86,13 +86,22 @@ export default function SparkLoadingExperience({ isLoading, onComplete }: SparkL
   const [cardFlipped, setCardFlipped] = useState(false);
   const [inspirationWord, setInspirationWord] = useState<string | null>(null);
   const lastWord = useRef<string | null>(null);
+  // Automatic, not tied to real progress either (same "theater" spirit as the energy icon) -
+  // climbs fast at first, then decelerates and hovers just short of done, so it never
+  // technically finishes on its own; only the real result arriving snaps it to 100%. That
+  // near-the-end crawl is where the "suspense" comes from, not a naive linear fill.
+  const [autoProgress, setAutoProgress] = useState(0);
 
   // Fresh, reshuffled message sequence and reset "theater" state every time a new loading
   // session starts - captures `freshSequence` in this closure (rather than reading the
   // `sequence` state var) so the interval always steps through the run it was built for, not a
   // stale one from before this effect re-ran.
   useEffect(() => {
-    if (!isLoading) return;
+    if (!isLoading) {
+      // a satisfying snap to "done" right as the real result arrives
+      queueMicrotask(() => setAutoProgress(100));
+      return;
+    }
 
     const freshSequence = buildMessageSequence();
     // Deferred to a microtask (rather than called synchronously in the effect body) to avoid
@@ -104,14 +113,22 @@ export default function SparkLoadingExperience({ isLoading, onComplete }: SparkL
       setParticles([]);
       setCardFlipped(false);
       setInspirationWord(null);
+      setAutoProgress(0);
     });
     lastWord.current = null;
 
-    const interval = setInterval(() => {
+    const messageInterval = setInterval(() => {
       setMessageIndex((i) => (i + 1) % freshSequence.length);
     }, MESSAGE_INTERVAL_MS);
 
-    return () => clearInterval(interval);
+    const progressInterval = setInterval(() => {
+      setAutoProgress((p) => (p >= 92 ? Math.min(92, p + 0.2) : p + (92 - p) * 0.05 + 0.4));
+    }, 150);
+
+    return () => {
+      clearInterval(messageInterval);
+      clearInterval(progressInterval);
+    };
   }, [isLoading]);
 
   function handleEnergyClick() {
@@ -162,8 +179,25 @@ export default function SparkLoadingExperience({ isLoading, onComplete }: SparkL
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: EASE_PREMIUM }}
-          className="flex flex-col gap-6"
+          // Full-screen overlay (not inline content) - a loading state buried in the middle of
+          // a tall page, below the fold, is easy to miss entirely; this guarantees it's the
+          // first thing on screen the moment generation starts, regardless of scroll position.
+          className="fixed inset-0 z-[110] flex flex-col items-center justify-center overflow-y-auto bg-background/95 px-6 py-10 backdrop-blur-sm"
         >
+          <div className="flex w-full max-w-2xl flex-col gap-6">
+            {/* Automatic suspense progress - climbs fast, then hovers just short of "done"
+                until the real result arrives and snaps it to 100%. */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-surface-2">
+                <motion.div
+                  className="h-full rounded-full bg-primary"
+                  animate={{ width: `${autoProgress}%` }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
+              </div>
+              <span className="font-label text-xs tabular-nums text-text-muted">{Math.round(autoProgress)}%</span>
+            </div>
+
           {/* 1. Skeleton cards, shaped like the real thing - not a generic gray box. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <SkeletonCard tall />
@@ -266,6 +300,7 @@ export default function SparkLoadingExperience({ isLoading, onComplete }: SparkL
               </motion.button>
               <span className="text-xs text-text-muted">{energyLabel}</span>
             </div>
+          </div>
           </div>
         </motion.div>
       )}
