@@ -1,10 +1,10 @@
 // Text banks for SparkLoadingExperience (components/ui/SparkLoadingExperience.tsx) - kept as
 // plain data, not inline in the component, so the copy can grow/be edited without touching
 // component logic. Every bank is intentionally longer than what one loading session needs
-// (3-15s at ~1.5-2s per message is ~2-9 messages) so a frequent user doesn't see the same
+// (15-25s at ~3.2s per message is ~5-8 messages) so a frequent user doesn't see the same
 // handful of lines on repeat.
 
-export type LoadingMessageType = "identity" | "suspense" | "process" | "wisdom" | "humor";
+export type LoadingMessageType = "identity" | "suspense" | "process" | "humor";
 
 export type LoadingMessage = { text: string; type: LoadingMessageType };
 
@@ -55,27 +55,6 @@ const PROCESS_LINES = [
   "מוודא שזה קליל לקריאה...",
 ];
 
-// Short, non-preachy - a different register from the operational lines, rendered in a
-// slightly different style in the component to signal "a different kind of moment".
-const WISDOM_QUOTES = [
-  "איזהו עשיר? השמח בחלקו — פרקי אבות",
-  "איזהו חכם? הלומד מכל אדם — פרקי אבות",
-  "לא עליך המלאכה לגמור, ולא אתה בן חורין להיבטל ממנה — פרקי אבות",
-  "אם אין אני לי מי לי, ואם לא עכשיו אימתי — הלל",
-  "הוי דן את כל האדם לכף זכות — פרקי אבות",
-  "מרבה עצה מרבה תבונה — פרקי אבות",
-  "עשה לך רב, וקנה לך חבר — פרקי אבות",
-  "במקום שאין אנשים השתדל להיות איש — פרקי אבות",
-  "יפה שעה אחת בתשובה ומעשים טובים — פרקי אבות",
-  "איזהו גיבור? הכובש את יצרו — פרקי אבות",
-  "כל ישראל ערבים זה בזה — תלמוד בבלי",
-  "טוב שם משמן טוב — קהלת",
-  "עת לכל חפץ — קהלת",
-  "יגעת ומצאת — תאמין",
-  "אין דבר העומד בפני הרצון — פתגם עברי",
-  "לאט לאט קונים חכמה — פתגם עברי",
-];
-
 // Light, in-on-the-joke humor aimed at content creators specifically.
 const HUMOR_LINES = [
   "בודק שאין שגיאות עריכה... כי הפיד לא סולח 😉",
@@ -96,30 +75,6 @@ const HUMOR_LINES = [
   "בודק שזה שווה 'שמור לצפייה מאוחר יותר'...",
 ];
 
-// For the "קלף השראה" flip card - single evocative words, revealed one at a time.
-export const INSPIRATION_WORDS = [
-  "אומץ",
-  "אותנטיות",
-  "עומק",
-  "חן",
-  "התמדה",
-  "השראה",
-  "יצירתיות",
-  "בהירות",
-  "חיבור",
-  "סקרנות",
-  "פשטות",
-  "עוצמה",
-  "אור",
-  "ייחוד",
-  "מסירות",
-  "חמלה",
-  "דיוק",
-  "שמחה",
-  "תשוקה",
-  "נוכחות",
-];
-
 function shuffle<T>(items: T[]): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -130,23 +85,10 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 /**
- * One random line per pick, without repeating a word/line back-to-back - used both for the
- * process/wisdom/humor message loop and for the inspiration-word flip card.
- */
-export function pickWithoutImmediateRepeat<T>(pool: T[], last: T | null): T {
-  if (pool.length <= 1) return pool[0];
-  let choice = pool[Math.floor(Math.random() * pool.length)];
-  while (choice === last) {
-    choice = pool[Math.floor(Math.random() * pool.length)];
-  }
-  return choice;
-}
-
-/**
  * identity (always first) -> suspense (always second) -> a shuffled, non-repeating run through
- * process/wisdom/humor for as long as the loading state lasts. Built once per loading session
- * (see the component's useMemo) so "no repeats in one loading run" holds even though each
- * individual bank only guarantees no *immediate* repeat on its own.
+ * process/humor for as long as the loading state lasts. Built once per loading session (see the
+ * component's useMemo) so "no repeats in one loading run" holds even though each individual bank
+ * only guarantees no *immediate* repeat on its own.
  */
 export function buildMessageSequence(): LoadingMessage[] {
   const identity: LoadingMessage = { text: pickRandom(IDENTITY_LINES), type: "identity" };
@@ -154,7 +96,6 @@ export function buildMessageSequence(): LoadingMessage[] {
 
   const rest: LoadingMessage[] = shuffle([
     ...PROCESS_LINES.map((text): LoadingMessage => ({ text, type: "process" })),
-    ...WISDOM_QUOTES.map((text): LoadingMessage => ({ text, type: "wisdom" })),
     ...HUMOR_LINES.map((text): LoadingMessage => ({ text, type: "humor" })),
   ]);
 
