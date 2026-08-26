@@ -7,12 +7,15 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button, Card, Input, Select, Spinner } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion";
+import { readTeaserSelection, clearTeaserSelection } from "@/lib/teaserSelection";
 import styles from "./onboarding.module.css";
 import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
 
 const FAMILY_STATUSES = ["רווק/ה", "נשוי/אה", "גרוש/ה", "אלמן/ה"];
 const TOTAL_STEPS = 4;
-const STEP_NAMES = ["פרטי גישה", "סגנון שפה", "נישה ופלטפורמות", "טון ופרטים אישיים"];
+// Step 0 is the only mandatory one (credentials) - the account is created right after it, and
+// steps 1-3 are the post-signup profile questionnaire, each skippable on its own.
+const STEP_NAMES = ["פרטי גישה", "נישה וקהל יעד", "פלטפורמות וסגנון שפה", "טון ופרטים אישיים"];
 const DRAFT_STORAGE_KEY = "nitzotz-onboarding-draft";
 const DRAFT_SAVED_HINT_MS = 2000;
 const COMPLETION_SCREEN_MS = 1500;
@@ -26,6 +29,7 @@ type FormState = {
   whatsappNumber: string;
   vocabularyStyle: string;
   niche: string;
+  targetAudience: string;
   platforms: string[];
   toneStyle: string;
   usesEmojis: boolean;
@@ -42,6 +46,7 @@ const INITIAL_STATE: FormState = {
   whatsappNumber: "",
   vocabularyStyle: "",
   niche: "",
+  targetAudience: "",
   platforms: [],
   toneStyle: "",
   usesEmojis: false,
@@ -50,9 +55,15 @@ const INITIAL_STATE: FormState = {
   familyStatus: "",
 };
 
-export default function OnboardingForm() {
+type Props = {
+  /** Set when a session already exists (e.g. someone returning via the dashboard's "finish
+   * your profile" reminder) - credentials are skipped entirely, straight into the questionnaire. */
+  existingCreatorId: number | null;
+};
+
+export default function OnboardingForm({ existingCreatorId }: Props) {
   const router = useRouter();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(existingCreatorId ? 1 : 0);
   // 1 = advancing (goNext), -1 = retreating (goBack) - drives which side the next step slides
   // in from. The page is dir="rtl", so "forward" enters from the left/exits to the right (the
   // mirror image of the LTR convention), matching Hebrew reading flow - see stepVariants below.
@@ -60,6 +71,7 @@ export default function OnboardingForm() {
   const prefersReducedMotion = useReducedMotion();
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
@@ -68,20 +80,39 @@ export default function OnboardingForm() {
   const stepSectionRef = useRef<HTMLElement>(null);
   const entranceProps = useEntranceMotion();
 
-  // Restore a saved draft after mount only (not during the initial render) so the
+  // The account only exists client-side as `createdCreatorId` once step 0 succeeds - for
+  // someone resuming an already-created account, existingCreatorId covers it from the start.
+  const [createdCreatorId, setCreatedCreatorId] = useState<number | null>(null);
+  const effectiveCreatorId = existingCreatorId ?? createdCreatorId;
+
+  // Restore a saved draft, and a niche/tone already picked in the home page's anonymous teaser
+  // (see lib/teaserSelection), after mount only (not during the initial render) so the
   // server-rendered HTML and the first client render still match - avoids a hydration mismatch.
   // The actual state updates are deferred to a microtask so they land as a distinct browser task
   // rather than synchronously inside the effect (avoids a same-tick cascading render).
   useEffect(() => {
     queueMicrotask(() => {
+      let restored: Partial<FormState> = {};
       try {
         const saved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
         if (saved) {
-          const parsed = JSON.parse(saved) as Partial<FormState>;
-          setForm((prev) => ({ ...prev, ...parsed, password: "", confirmPassword: "" }));
+          restored = JSON.parse(saved) as Partial<FormState>;
         }
       } catch {
         // corrupt or inaccessible storage - just start fresh
+      }
+
+      // The teaser choice only fills in what the draft didn't already have - an in-progress
+      // draft is more authoritative than a pick made earlier on the home page.
+      const teaserSelection = readTeaserSelection();
+      if (teaserSelection) {
+        if (!restored.niche) restored.niche = teaserSelection.niche;
+        if (!restored.toneStyle) restored.toneStyle = teaserSelection.tone;
+        clearTeaserSelection();
+      }
+
+      if (Object.keys(restored).length > 0) {
+        setForm((prev) => ({ ...prev, ...restored, password: "", confirmPassword: "" }));
       }
       setDraftRestored(true);
     });
@@ -98,6 +129,7 @@ export default function OnboardingForm() {
       whatsappNumber: form.whatsappNumber,
       vocabularyStyle: form.vocabularyStyle,
       niche: form.niche,
+      targetAudience: form.targetAudience,
       platforms: form.platforms,
       toneStyle: form.toneStyle,
       usesEmojis: form.usesEmojis,
@@ -150,6 +182,8 @@ export default function OnboardingForm() {
 
   // Pure per-field validation, independent of `touched` - used both to gate
   // step advancement and (once a field is touched) to render its inline error.
+  // Only step 0's fields are ever mandatory - the profile questionnaire (steps 1-3) has
+  // nothing to validate here since every field there is optional (see isStepValid/validateStep).
   function computeFieldError(key: keyof FormState): string | undefined {
     switch (key) {
       case "name":
@@ -167,9 +201,6 @@ export default function OnboardingForm() {
         if (!form.whatsappNumber.trim()) return "יש להזין מספר וואטסאפ";
         if (!isValidIsraeliMobile(form.whatsappNumber)) return "מספר וואטסאפ לא תקין - יש להזין בפורמט 05X-XXXXXXX";
         return undefined;
-      case "niche":
-        if (!form.niche.trim()) return "יש לציין נישה";
-        return undefined;
       default:
         return undefined;
     }
@@ -180,20 +211,15 @@ export default function OnboardingForm() {
     return touched[key] ? computeFieldError(key) : undefined;
   }
 
-  // Pure check for whether "הבא" should be enabled - mirrors validateStep's conditions
-  // without the side effects (touching fields, setting the error banner).
+  // Pure check for whether "המשך" should be enabled - mirrors validateStep's conditions
+  // without the side effects (touching fields, setting the error banner). Steps 1-3 are
+  // always valid to proceed from (or skip) since nothing there is required.
   function isStepValid(): boolean {
     if (step === 0) {
       const keys: (keyof FormState)[] = ["name", "password", "confirmPassword", "whatsappNumber"];
       if (keys.some((key) => computeFieldError(key))) return false;
       if (!form.gender) return false;
     }
-    if (step === 1 && !form.vocabularyStyle) return false;
-    if (step === 2) {
-      if (computeFieldError("niche")) return false;
-      if (form.platforms.length === 0) return false;
-    }
-    if (step === 3 && !form.toneStyle) return false;
     return true;
   }
 
@@ -205,24 +231,56 @@ export default function OnboardingForm() {
       if (firstError) return "יש לתקן את השדות המסומנים למעלה";
       if (!form.gender) return "יש לבחור בן או בת";
     }
-    if (step === 1) {
-      if (!form.vocabularyStyle) return "יש לבחור סגנון שפה ודימויים";
-    }
-    if (step === 2) {
-      touchAll(["niche"]);
-      if (computeFieldError("niche")) return "יש לתקן את השדות המסומנים למעלה";
-      if (form.platforms.length === 0) return "יש לבחור לפחות פלטפורמה אחת";
-    }
-    if (step === 3) {
-      if (!form.toneStyle) return "יש לבחור טון דיבור";
-    }
     return null;
   }
 
-  function goNext() {
+  // Step 0 is different from every other step: instead of just validating and sliding to the
+  // next screen, it actually creates the account (so the rest of the questionnaire runs against
+  // a real, logged-in session) - only advances once that succeeds.
+  async function handleCreateAccount() {
     const validationError = validateStep();
     if (validationError) {
       setError(validationError);
+      return;
+    }
+
+    setCreatingAccount(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/creators", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          gender: form.gender,
+          password: form.password,
+          whatsappNumber: form.whatsappNumber,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error ?? "משהו השתבש, נסו שוב");
+        setCreatingAccount(false);
+        return;
+      }
+
+      setCreatedCreatorId(data.id);
+      setError(null);
+      setDirection(1);
+      setStep(1);
+    } catch {
+      setError("שגיאת רשת, נסו שוב");
+    } finally {
+      setCreatingAccount(false);
+    }
+  }
+
+  function goNext() {
+    if (step === 0) {
+      handleCreateAccount();
       return;
     }
     setError(null);
@@ -233,7 +291,7 @@ export default function OnboardingForm() {
   function goBack() {
     setError(null);
     setDirection(-1);
-    setStep((s) => Math.max(0, s - 1));
+    setStep((s) => Math.max(1, s - 1));
   }
 
   // x offset is 0 under reduced motion (opacity/position stay put - see useReducedMotion above).
@@ -245,33 +303,27 @@ export default function OnboardingForm() {
   };
 
   async function handleSubmit() {
-    const validationError = validateStep();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/creators", {
-        method: "POST",
+      // Only whatever was actually filled in gets sent - skipped fields are simply absent,
+      // which /api/profile leaves untouched rather than overwriting with an empty value.
+      const profileUpdates: Record<string, unknown> = {};
+      if (form.niche.trim()) profileUpdates.niche = form.niche.trim();
+      if (form.targetAudience.trim()) profileUpdates.targetAudience = form.targetAudience.trim();
+      if (form.vocabularyStyle) profileUpdates.vocabularyStyle = form.vocabularyStyle;
+      if (form.platforms.length > 0) profileUpdates.platforms = form.platforms;
+      if (form.toneStyle) profileUpdates.toneStyle = form.toneStyle;
+      profileUpdates.usesEmojis = form.usesEmojis;
+      if (form.childrenCount !== "") profileUpdates.childrenCount = form.childrenCount;
+      if (form.city.trim()) profileUpdates.city = form.city.trim();
+      if (form.familyStatus) profileUpdates.familyStatus = form.familyStatus;
+
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          gender: form.gender,
-          password: form.password,
-          vocabularyStyle: form.vocabularyStyle,
-          niche: form.niche,
-          platforms: form.platforms,
-          toneStyle: form.toneStyle,
-          usesEmojis: form.usesEmojis,
-          whatsappNumber: form.whatsappNumber,
-          childrenCount: form.childrenCount,
-          city: form.city,
-          familyStatus: form.familyStatus,
-        }),
+        body: JSON.stringify(profileUpdates),
       });
 
       const data = await response.json();
@@ -286,12 +338,15 @@ export default function OnboardingForm() {
 
       // Instant aha moment: generate today's first batch now, while still showing the
       // "מכינים לך..." screen (submitting stays true), so /dashboard opens on 4 ready cards
-      // instead of an empty state. Best-effort - if this fails, the dashboard's own empty
-      // state ("צור רעיונות") is a perfectly fine fallback, so account creation still succeeds.
-      try {
-        await fetch(`/api/generate-ideas?creatorId=${data.id}`);
-      } catch {
-        // ignored - see comment above
+      // instead of an empty state. Only possible once a niche is actually known - if every
+      // screen was skipped, there's nothing to generate from yet, so this is best-effort and
+      // conditional: the dashboard's own empty state ("צור רעיונות") is a fine fallback either way.
+      if (effectiveCreatorId && form.niche.trim()) {
+        try {
+          await fetch(`/api/generate-ideas?creatorId=${effectiveCreatorId}`);
+        } catch {
+          // ignored - see comment above
+        }
       }
 
       setCompleted(true);
@@ -430,9 +485,59 @@ export default function OnboardingForm() {
             exit="exit"
             transition={STEP_SLIDE_TRANSITION}
           >
-            <h2 className={styles.stepTitle} id="vocabulary-style-label">
+            <h2 className={styles.stepTitle}>נישה וקהל יעד</h2>
+            <p className={styles.optionalNote}>
+              שני השדות כאן אופציונליים - אפשר לדלג ולהשלים בהמשך, אבל ככל שתמלא/י יותר כך הרעיונות יהיו מדויקים יותר.
+            </p>
+            <Input
+              label="באיזו נישה את/ה עוסק/ת? (אופציונלי)"
+              type="text"
+              value={form.niche}
+              onChange={(e) => update("niche", e.target.value)}
+              placeholder="לדוגמה: כושר, פיננסים, הורות, נדל״ן..."
+            />
+            <Input
+              label="מי קהל היעד שלך? (אופציונלי)"
+              type="text"
+              value={form.targetAudience}
+              onChange={(e) => update("targetAudience", e.target.value)}
+              placeholder="לדוגמה: אמהות צעירות, יזמים מתחילים, סטודנטים..."
+            />
+          </motion.section>
+        )}
+
+        {step === 2 && (
+          <motion.section
+            key="step-2"
+            ref={stepSectionRef}
+            className={styles.stepSection}
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={STEP_SLIDE_TRANSITION}
+          >
+            <h2 className={styles.stepTitle}>פלטפורמות וסגנון שפה</h2>
+            <p className={styles.optionalNote}>גם כאן הכל אופציונלי - אפשר לדלג ולהשלים בהמשך.</p>
+            <fieldset className={styles.fieldset}>
+              <legend className={styles.fieldLabel}>באילו פלטפורמות את/ה פעיל/ה?</legend>
+              <div className={styles.checkboxGrid}>
+                {PLATFORMS.map((platform) => (
+                  <label key={platform} className={styles.checkboxOption}>
+                    <input
+                      type="checkbox"
+                      checked={form.platforms.includes(platform)}
+                      onChange={() => togglePlatform(platform)}
+                    />
+                    <span>{platform}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <span className={styles.fieldLabel} id="vocabulary-style-label">
               באיזה עולם דימויים, טון דיבור ואוצר מילים תרצה שהתוכן שלך ינוסח?
-            </h2>
+            </span>
             <div className={styles.cardGrid} role="radiogroup" aria-labelledby="vocabulary-style-label">
               {VOCABULARY_STYLES.map((style) => (
                 <button
@@ -450,46 +555,6 @@ export default function OnboardingForm() {
           </motion.section>
         )}
 
-        {step === 2 && (
-          <motion.section
-            key="step-2"
-            ref={stepSectionRef}
-            className={styles.stepSection}
-            custom={direction}
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={STEP_SLIDE_TRANSITION}
-          >
-            <h2 className={styles.stepTitle}>נישה ופלטפורמות</h2>
-            <Input
-              label="באיזו נישה את/ה עוסק/ת?"
-              type="text"
-              value={form.niche}
-              onChange={(e) => update("niche", e.target.value)}
-              onBlur={() => markTouched("niche")}
-              error={fieldError("niche")}
-              placeholder="לדוגמה: כושר, פיננסים, הורות, נדל״ן..."
-            />
-            <fieldset className={styles.fieldset}>
-              <legend className={styles.fieldLabel}>באילו פלטפורמות את/ה פעיל/ה?</legend>
-              <div className={styles.checkboxGrid}>
-                {PLATFORMS.map((platform) => (
-                  <label key={platform} className={styles.checkboxOption}>
-                    <input
-                      type="checkbox"
-                      checked={form.platforms.includes(platform)}
-                      onChange={() => togglePlatform(platform)}
-                    />
-                    <span>{platform}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          </motion.section>
-        )}
-
         {step === 3 && (
           <motion.section
             key="step-3"
@@ -503,6 +568,7 @@ export default function OnboardingForm() {
             transition={STEP_SLIDE_TRANSITION}
           >
             <h2 className={styles.stepTitle}>טון דיבור ופרטים אישיים</h2>
+            <p className={styles.optionalNote}>השדה הזה, וכל מה שמתחתיו, אופציונלי.</p>
             <span className={styles.fieldLabel} id="tone-label">
               איך היית מגדיר/ה את סגנון הדיבור שלך?
             </span>
@@ -529,8 +595,6 @@ export default function OnboardingForm() {
               />
               <span>משתמש/ת באימוג&apos;ים בתוכן</span>
             </label>
-
-            <p className={styles.optionalNote}>הפרטים הבאים אופציונליים — עוזרים לנו להתאים תוכן מדויק יותר</p>
 
             <Input
               label="מספר ילדים (אופציונלי)"
@@ -568,7 +632,7 @@ export default function OnboardingForm() {
         )}
 
         <div className={styles.actions}>
-          {step > 0 && (
+          {step > 1 && (
             <Button type="button" variant="secondary" onClick={goBack} disabled={submitting}>
               חזרה
             </Button>
@@ -578,10 +642,11 @@ export default function OnboardingForm() {
               type="button"
               variant="primary"
               onClick={goNext}
-              disabled={!isStepValid()}
+              disabled={!isStepValid() || creatingAccount}
+              isLoading={creatingAccount}
               className={styles.grow}
             >
-              המשך
+              {creatingAccount ? "יוצר חשבון..." : "המשך"}
             </Button>
           ) : (
             <Button
@@ -591,10 +656,24 @@ export default function OnboardingForm() {
               disabled={submitting}
               className={styles.grow}
             >
-              {submitting ? "שומר..." : "סיום והרשמה"}
+              {submitting ? "שומר..." : "סיום"}
             </Button>
           )}
         </div>
+
+        {/* Skip is only meaningful once an account exists - step 0's credentials stay mandatory.
+            On the last step, "skip" and "finish" are the same action (there's no further step
+            to advance into), so it calls handleSubmit directly instead of goNext. */}
+        {step > 0 && (
+          <button
+            type="button"
+            className={styles.skipLink}
+            onClick={step === TOTAL_STEPS - 1 ? handleSubmit : goNext}
+            disabled={submitting}
+          >
+            {step === TOTAL_STEPS - 1 ? "דלג וסיים" : "דלג בינתיים"}
+          </button>
+        )}
 
         <p className={styles.linkRow}>
           <Link href="/privacy">איך אנחנו שומרים על הפרטיות שלך</Link>

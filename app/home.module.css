@@ -131,6 +131,13 @@ div.teaserCard {
   flex-wrap: wrap;
 }
 
+.teaserResultNote {
+  margin-top: var(--space-md);
+  font-size: var(--font-size-xs);
+  opacity: 0.6;
+  line-height: 1.5;
+}
+
 .teaserGenerating {
   display: flex;
   flex-direction: column;

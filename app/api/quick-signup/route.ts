@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       gender,
       vocabularyStyle: null,
       niche,
+      targetAudience: null,
       toneStyle,
       usesEmojis: false,
       childrenCount: null,
@@ -108,6 +109,9 @@ export async function POST(request: Request) {
       familyStatus: null,
       platforms: [],
       persistentContext: null,
+      // Matches the DB columns' own defaults for a freshly created account (see lib/migrations.ts).
+      showParasha: true,
+      whatsappNotificationsEnabled: true,
     };
     const dailyInfo = await getDailyInfo();
     const generatedIdeas = await generateIdeas(profile, dailyInfo, DEFAULT_IDEA_COUNT, null, seedIdea);

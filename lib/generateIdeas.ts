@@ -154,7 +154,7 @@ function buildUserPrompt(
     `תאריך לועזי: ${dailyInfo.gregorianDate}`,
     `תאריך עברי: ${dailyInfo.hebrewDate.formatted}`,
     `אירועים מיוחדים היום:\n${eventLines}`,
-    dailyInfo.shabbat.parasha && isNearShabbat
+    profile.showParasha && dailyInfo.shabbat.parasha && isNearShabbat
       ? `פרשת השבוע (הקשר שבועי, לא בהכרח היום עצמו): ${dailyInfo.shabbat.parasha}`
       : null,
   ]

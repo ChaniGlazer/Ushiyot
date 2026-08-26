@@ -27,7 +27,9 @@ function formatGregorianWithWeekday(isoDate: string): string {
   return `${weekday}, ${dayMonthYear}`;
 }
 
-export default function ContextCard({ dailyInfo }: { dailyInfo: DailyHebcalInfo }) {
+type Props = { dailyInfo: DailyHebcalInfo; showParasha: boolean };
+
+export default function ContextCard({ dailyInfo, showParasha }: Props) {
   const entranceProps = useEntranceMotion(0);
 
   return (
@@ -51,7 +53,7 @@ export default function ContextCard({ dailyInfo }: { dailyInfo: DailyHebcalInfo 
         <p className={styles.noEvents}>אין אירוע מיוחד היום</p>
       )}
 
-      {dailyInfo.shabbat.parasha && (
+      {showParasha && dailyInfo.shabbat.parasha && (
         <p className={styles.shabbatLine}>
           פרשת השבוע: {dailyInfo.shabbat.parasha}
           {dailyInfo.shabbat.candleLighting && (

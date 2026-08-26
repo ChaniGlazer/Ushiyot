@@ -91,6 +91,25 @@ export function runMigrations(db: DatabaseSync): void {
   if (!creatorColumns.some((column) => column.name === "expansions_count")) {
     db.exec("ALTER TABLE creators ADD COLUMN expansions_count INTEGER NOT NULL DEFAULT 0;");
   }
+  // Free-text "who this content is for" (e.g. "אמהות צעירות", "יזמים מתחילים") - collected in
+  // the post-signup profile questionnaire (see app/onboarding/OnboardingForm.tsx), separate
+  // from `niche` (what the content is about). No CHECK constraint, same reasoning as
+  // vocabulary_style: descriptions vary too much to usefully constrain.
+  if (!creatorColumns.some((column) => column.name === "target_audience")) {
+    db.exec("ALTER TABLE creators ADD COLUMN target_audience TEXT;");
+  }
+  // Personal settings (app/settings) - default to 1 (on) so existing creators keep today's
+  // behavior unchanged until they actively opt out. show_parasha gates a real behavior, not
+  // just display: it also controls whether the weekly parasha gets injected into the AI prompt
+  // (see lib/generateIdeas.ts). There is deliberately no per-creator opt-out for the site-wide
+  // Shabbat guard itself (see middleware.ts) - that blocks every visitor unconditionally, by
+  // explicit product decision.
+  if (!creatorColumns.some((column) => column.name === "show_parasha")) {
+    db.exec("ALTER TABLE creators ADD COLUMN show_parasha INTEGER NOT NULL DEFAULT 1;");
+  }
+  if (!creatorColumns.some((column) => column.name === "whatsapp_notifications_enabled")) {
+    db.exec("ALTER TABLE creators ADD COLUMN whatsapp_notifications_enabled INTEGER NOT NULL DEFAULT 1;");
+  }
   if (!creatorColumns.some((column) => column.name === "vocabulary_style")) {
     db.exec("ALTER TABLE creators ADD COLUMN vocabulary_style TEXT;");
     db.exec(`

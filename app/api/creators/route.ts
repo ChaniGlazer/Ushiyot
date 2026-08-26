@@ -10,6 +10,7 @@ type CreatorPayload = {
   password?: unknown;
   vocabularyStyle?: unknown;
   niche?: unknown;
+  targetAudience?: unknown;
   platforms?: unknown;
   toneStyle?: unknown;
   usesEmojis?: unknown;
@@ -29,6 +30,12 @@ function placeholderEmail(whatsappNumber: string): string {
   return `${digits}@phone.nitzotz.local`;
 }
 
+// Account creation itself only requires credentials (name/gender/password/whatsapp) - the rest
+// of the profile (vocabulary style, niche, target audience, platforms, tone) is optional here
+// and normally filled in afterward by the post-signup questionnaire via PATCH /api/profile
+// (see OnboardingForm.tsx), so someone can have a real, logged-in account before answering a
+// single profile question. Anything that IS provided still has to be valid, though - this
+// isn't a silent "accept anything" endpoint, just one where the profile fields aren't required.
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as CreatorPayload | null;
 
@@ -42,6 +49,7 @@ export async function POST(request: Request) {
     password,
     vocabularyStyle,
     niche,
+    targetAudience,
     platforms,
     toneStyle,
     usesEmojis,
@@ -60,27 +68,51 @@ export async function POST(request: Request) {
   if (typeof password !== "string" || password.length < 8) {
     return NextResponse.json({ error: "הסיסמה חייבת להכיל לפחות 8 תווים" }, { status: 400 });
   }
-  if (
-    typeof vocabularyStyle !== "string" ||
-    !VOCABULARY_STYLES.includes(vocabularyStyle as (typeof VOCABULARY_STYLES)[number])
-  ) {
-    return NextResponse.json({ error: "יש לבחור סגנון שפה ודימויים" }, { status: 400 });
-  }
-  if (typeof niche !== "string" || !niche.trim()) {
-    return NextResponse.json({ error: "יש לציין נישה" }, { status: 400 });
-  }
-  if (
-    !Array.isArray(platforms) ||
-    platforms.length === 0 ||
-    !platforms.every((p) => PLATFORMS.includes(p as (typeof PLATFORMS)[number]))
-  ) {
-    return NextResponse.json({ error: "יש לבחור לפחות פלטפורמה אחת" }, { status: 400 });
-  }
-  if (typeof toneStyle !== "string" || !TONE_STYLES.includes(toneStyle as (typeof TONE_STYLES)[number])) {
-    return NextResponse.json({ error: "טון דיבור לא תקין" }, { status: 400 });
-  }
   if (typeof whatsappNumber !== "string" || !isValidIsraeliMobile(whatsappNumber)) {
     return NextResponse.json({ error: "מספר וואטסאפ לא תקין - יש להזין בפורמט 05X-XXXXXXX" }, { status: 400 });
+  }
+
+  let vocabularyStyleValue: string | null = null;
+  if (vocabularyStyle !== undefined && vocabularyStyle !== null && vocabularyStyle !== "") {
+    if (
+      typeof vocabularyStyle !== "string" ||
+      !VOCABULARY_STYLES.includes(vocabularyStyle as (typeof VOCABULARY_STYLES)[number])
+    ) {
+      return NextResponse.json({ error: "יש לבחור סגנון שפה ודימויים" }, { status: 400 });
+    }
+    vocabularyStyleValue = vocabularyStyle;
+  }
+
+  let nicheValue: string | null = null;
+  if (niche !== undefined && niche !== null && niche !== "") {
+    if (typeof niche !== "string" || !niche.trim()) {
+      return NextResponse.json({ error: "יש לציין נישה" }, { status: 400 });
+    }
+    nicheValue = niche.trim();
+  }
+
+  let targetAudienceValue: string | null = null;
+  if (targetAudience !== undefined && targetAudience !== null && targetAudience !== "") {
+    if (typeof targetAudience !== "string" || !targetAudience.trim()) {
+      return NextResponse.json({ error: "קהל היעד לא תקין" }, { status: 400 });
+    }
+    targetAudienceValue = targetAudience.trim();
+  }
+
+  let platformsValue: string[] = [];
+  if (platforms !== undefined && platforms !== null) {
+    if (!Array.isArray(platforms) || !platforms.every((p) => PLATFORMS.includes(p as (typeof PLATFORMS)[number]))) {
+      return NextResponse.json({ error: "פלטפורמה לא תקינה" }, { status: 400 });
+    }
+    platformsValue = platforms;
+  }
+
+  let toneStyleValue: string | null = null;
+  if (toneStyle !== undefined && toneStyle !== null && toneStyle !== "") {
+    if (typeof toneStyle !== "string" || !TONE_STYLES.includes(toneStyle as (typeof TONE_STYLES)[number])) {
+      return NextResponse.json({ error: "טון דיבור לא תקין" }, { status: 400 });
+    }
+    toneStyleValue = toneStyle;
   }
 
   let childrenCountValue: number | null = null;
@@ -108,31 +140,32 @@ export async function POST(request: Request) {
   const result = db
     .prepare(
       `INSERT INTO creators
-        (email, name, gender, password_hash, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (email, name, gender, password_hash, vocabulary_style, niche, target_audience, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       placeholderEmail(trimmedWhatsapp),
       trimmedName,
       gender,
       hashPassword(password),
-      vocabularyStyle,
-      niche.trim(),
-      toneStyle,
+      vocabularyStyleValue,
+      nicheValue,
+      targetAudienceValue,
+      toneStyleValue,
       usesEmojis ? 1 : 0,
       childrenCountValue,
       typeof city === "string" && city.trim() ? city.trim() : null,
       typeof familyStatus === "string" && familyStatus ? familyStatus : null,
-      JSON.stringify(platforms),
+      JSON.stringify(platformsValue),
       trimmedWhatsapp,
     );
 
   const creatorId = Number(result.lastInsertRowid);
 
   // Deliberately does NOT pre-generate the first idea batch here - an OpenAI call for 4 ideas
-  // with rationale/category takes ~15s, too slow to block the signup transaction itself. The
-  // client triggers /api/generate-ideas separately right after this succeeds (see
-  // OnboardingForm's handleSubmit), while showing its own "מכינים לך..." loading screen.
+  // with rationale/category takes ~15s, too slow to block the signup transaction itself, and
+  // niche may not even be known yet at this point (the profile questionnaire that fills it in
+  // runs after this). See OnboardingForm's post-questionnaire step for where generation happens.
   const session = createSession(creatorId);
   const response = NextResponse.json({ id: creatorId }, { status: 201 });
   attachSessionCookie(response, session);

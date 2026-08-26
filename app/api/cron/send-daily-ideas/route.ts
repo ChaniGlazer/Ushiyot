@@ -26,8 +26,9 @@ export async function GET(request: Request) {
 
   const creators = db
     .prepare(
-      `SELECT id, email, name, gender, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, created_at
-       FROM creators WHERE whatsapp_number IS NOT NULL AND whatsapp_number != ''`,
+      `SELECT id, email, name, gender, vocabulary_style, niche, target_audience, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, show_parasha, shabbat_mode_enabled, whatsapp_notifications_enabled, created_at
+       FROM creators
+       WHERE whatsapp_number IS NOT NULL AND whatsapp_number != '' AND whatsapp_notifications_enabled = 1`,
     )
     .all() as ActiveCreatorRow[];
 

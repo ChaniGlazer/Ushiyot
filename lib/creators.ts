@@ -31,6 +31,7 @@ export type CreatorProfile = {
   gender: string | null;
   vocabularyStyle: string | null;
   niche: string | null;
+  targetAudience: string | null;
   toneStyle: string | null;
   usesEmojis: boolean;
   childrenCount: number | null;
@@ -38,6 +39,8 @@ export type CreatorProfile = {
   familyStatus: string | null;
   platforms: string[];
   persistentContext: string | null;
+  showParasha: boolean;
+  whatsappNotificationsEnabled: boolean;
 };
 
 export function toCreatorProfile(row: CreatorRow): CreatorProfile {
@@ -57,6 +60,7 @@ export function toCreatorProfile(row: CreatorRow): CreatorProfile {
     gender: row.gender,
     vocabularyStyle: row.vocabulary_style,
     niche: row.niche,
+    targetAudience: row.target_audience,
     toneStyle: row.tone_style,
     usesEmojis: row.uses_emojis === 1,
     childrenCount: row.children_count,
@@ -64,5 +68,21 @@ export function toCreatorProfile(row: CreatorRow): CreatorProfile {
     familyStatus: row.family_status,
     platforms,
     persistentContext: row.persistent_context,
+    showParasha: row.show_parasha === 1,
+    whatsappNotificationsEnabled: row.whatsapp_notifications_enabled === 1,
   };
+}
+
+// Whether the post-signup profile questionnaire (see app/onboarding/OnboardingForm.tsx, steps
+// 1-3) still has something worth going back for - checks every field it collects, not just
+// niche, so someone who filled in niche+tone but skipped platforms/target audience/vocabulary
+// style still gets the dashboard's reminder banner (see ProfileReminderBanner.tsx).
+export function isProfileIncomplete(profile: CreatorProfile): boolean {
+  return (
+    !profile.niche ||
+    !profile.targetAudience ||
+    profile.platforms.length === 0 ||
+    !profile.toneStyle ||
+    !profile.vocabularyStyle
+  );
 }

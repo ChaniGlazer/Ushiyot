@@ -7,6 +7,7 @@ import { Button, Card, Input, Modal, Select, Spinner } from "@/components/ui";
 import { GENDERS, TONE_STYLES, isValidIsraeliMobile, type ToneStyle } from "@/lib/creators";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion";
 import { TEASER_NICHES, getFeaturedTeaser, getTeaserIdea, type TeaserIdea, type TeaserNiche } from "@/lib/teaserExamples";
+import { saveTeaserSelection } from "@/lib/teaserSelection";
 import styles from "./home.module.css";
 
 export default function HomeTeaserWidget() {
@@ -31,6 +32,13 @@ export default function HomeTeaserWidget() {
       setIdea(featured.idea);
     });
   }, []);
+
+  // Whatever niche/tone the visitor is currently looking at (the day's default, or something
+  // they picked themselves) - saved so the post-signup profile questionnaire can default to it
+  // instead of starting blank, if this same visitor goes on to register (see lib/teaserSelection).
+  useEffect(() => {
+    saveTeaserSelection({ niche, tone });
+  }, [niche, tone]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -184,6 +192,10 @@ export default function HomeTeaserWidget() {
                 קבל את זה כל יום
               </Button>
             </div>
+            <p className={styles.teaserResultNote}>
+              זו דוגמה כללית לנישה שבחרת. בהרשמה נתאים את הרעיונות במדויק יותר — לקהל היעד, לפלטפורמות ולסגנון
+              האישי שלך.
+            </p>
           </motion.div>
         )}
       </Card>

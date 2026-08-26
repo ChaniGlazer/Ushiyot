@@ -1,0 +1,140 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.logoLink {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.logoLink:hover {
+  color: var(--color-primary);
+}
+
+.card {
+  width: 100%;
+  max-width: 32rem;
+  box-shadow: 0 10px 30px var(--color-shadow);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+}
+
+.backLink {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: hsl(var(--text-muted));
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: hsl(var(--primary));
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-block: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sectionTitle {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: var(--font-size-sm);
+}
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.checkboxGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.checkboxOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+}
+
+.formError {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-lg);
+}
+
+.formSuccess {
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-lg);
+}
+
+.actions {
+  margin-top: var(--space-xl);
+}
+
+.grow {
+  width: 100%;
+}
+
+/* Element-qualified (div.dangerZone, not just .dangerZone) so this reliably beats
+   Card.module.css's own bare .card border-color rule regardless of which CSS module happens
+   to load later in the bundle - same specificity otherwise, since the two classes live in
+   separate hashed modules and can't be combined into one compound selector. Deliberately
+   muted (not a loud red block) - just enough to read as "different from the rest of the form". */
+div.dangerZone {
+  width: 100%;
+  max-width: 32rem;
+  border-color: var(--color-danger-border);
+}
+
+.dangerZoneTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-danger);
+  opacity: 0.85;
+  margin-bottom: var(--space-sm);
+}
+
+.dangerZoneText {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+  margin-bottom: var(--space-lg);
+}

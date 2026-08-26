@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentCreator } from "@/lib/auth";
-import { toCreatorProfile } from "@/lib/creators";
+import { isProfileIncomplete, toCreatorProfile } from "@/lib/creators";
 import { getDailyInfo } from "@/lib/hebcal";
 import { DEFAULT_IDEA_COUNT } from "@/lib/generateIdeas";
 import { getRemainingIdeaBatchesEstimate } from "@/lib/apiUsage";
@@ -9,12 +9,13 @@ import { getTodaysIdeaBatch } from "@/lib/ideaHistory";
 import { getAccuracyBreakdown, computeAccuracyScore, getAccuracyLabel } from "@/lib/accuracyScore";
 import { getRecentContext } from "@/lib/getRecentContext";
 import { touchStreak } from "@/lib/streak";
+import SettingsLink from "./SettingsLink";
 import LogoutButton from "./LogoutButton";
-import DeleteAccountButton from "./DeleteAccountButton";
 import IdeasBoard from "./IdeasBoard";
 import AccuracyGauge from "./AccuracyGauge";
 import ThemeProvider from "./ThemeProvider";
 import ContextCard from "./ContextCard";
+import ProfileReminderBanner from "./ProfileReminderBanner";
 import styles from "./dashboard.module.css";
 
 export const metadata: Metadata = {
@@ -79,13 +80,15 @@ export default async function DashboardPage() {
             )}
           </div>
           <div className={styles.headerActions}>
+            <SettingsLink />
             <LogoutButton />
-            <DeleteAccountButton />
           </div>
         </header>
 
+        {isProfileIncomplete(profile) && <ProfileReminderBanner />}
+
         <div className={styles.topRow}>
-          <ContextCard dailyInfo={dailyInfo} />
+          <ContextCard dailyInfo={dailyInfo} showParasha={profile.showParasha} />
 
           <AccuracyGauge
             score={accuracyScore}

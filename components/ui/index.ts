@@ -17,3 +17,9 @@ export { default as Spinner } from "./Spinner";
 
 export { default as SparkButton } from "./SparkButton";
 export type { SparkButtonProps } from "./SparkButton";
+
+export { default as Toggle } from "./Toggle";
+export type { ToggleProps } from "./Toggle";
+
+export { default as SparkLoadingExperience } from "./SparkLoadingExperience";
+export type { SparkLoadingExperienceProps } from "./SparkLoadingExperience";
