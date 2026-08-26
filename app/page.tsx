@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { Button } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import HomeTeaserWidget from "./HomeTeaserWidget";
 import styles from "./home.module.css";
@@ -22,23 +21,27 @@ export default function Home() {
 
   return (
     <main className={styles.page}>
+      {/* Quiet corner, not competing with the free example below - a returning/decided visitor
+          can still get straight to login/signup, but a first-time visitor's eye isn't pulled
+          away from the teaser by two big colored buttons before they've seen any value. */}
+      <div className={styles.authLinks}>
+        <Link href="/login" className={styles.authLink}>
+          התחברות
+        </Link>
+        <span className={styles.authLinkDivider} aria-hidden="true">
+          ·
+        </span>
+        <Link href="/onboarding" className={styles.authLink}>
+          הרשמה
+        </Link>
+      </div>
+
       <motion.div className={styles.heroGroup} {...heroEntrance}>
         <motion.h1 className={styles.logo} style={{ y: logoY, opacity: logoOpacity }}>
           ניצוץ
         </motion.h1>
-        <p className={styles.tagline}>
-          רעיונות תוכן יומיים, מותאמים אישית ליוצרי תוכן ואושיות רשת —
-          <br />
-          מבוססים על הלוח העברי האמיתי.
-        </p>
-        <div className={styles.actions}>
-          <Button as={Link} href="/onboarding" variant="primary" className={styles.ctaButton}>
-            הרשמה
-          </Button>
-          <Button as={Link} href="/login" variant="secondary" className={styles.ctaButton}>
-            התחברות
-          </Button>
-        </div>
+        <p className={styles.hook}>יוצר תוכן? הנה הרעיון הבא שלך</p>
+        <p className={styles.tagline}>מתחדש כל יום, מותאם לנישה שלך — ראה דוגמה אמיתית למטה.</p>
       </motion.div>
 
       <motion.div {...teaserEntrance}>

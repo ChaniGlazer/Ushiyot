@@ -10,6 +10,7 @@ export const TEASER_NICHES = [
   "אוכל ובישול",
   "לייף-סטייל ואופנה",
   "פיתוח אישי והשראה",
+  "מועדים ולוח עברי",
 ] as const;
 
 export type TeaserNiche = (typeof TEASER_NICHES)[number];
@@ -93,8 +94,44 @@ const EXAMPLES: Record<TeaserNiche, Record<ToneStyle, TeaserIdea>> = {
       type: "רגע השראה",
     },
   },
+  // The one niche that shows off the product's real differentiator (real Hebcal grounding) -
+  // framed as a content-creator's angle on the calendar, not a religious message, so it fits
+  // the same general-audience rotation as every other niche here.
+  "מועדים ולוח עברי": {
+    רשמי: {
+      title: "ראש חודש כהזדמנות תוכן: 3 זוויות שכדאי לנצל",
+      description: "הסבר קצר איך למנף את תחושת ה'התחלה מחדש' של ראש חודש לפוסט רלוונטי לנישה שלך, גם אם היא לא דתית.",
+      type: "פוסט מבוסס תזמון",
+    },
+    קליל: {
+      title: "מה קורה השבוע בלוח העברי (וזה יכול להיות הפוסט הבא שלך)",
+      description: "רעיון קליל לנצל את פרשת השבוע או תאריך עברי מיוחד כטריגר לתוכן טבעי ומתוזמן, בלי להתאמץ לחשוב על נושא.",
+      type: "טיפ תזמון",
+    },
+  },
 };
 
 export function getTeaserIdea(niche: TeaserNiche, tone: ToneStyle): TeaserIdea {
   return EXAMPLES[niche][tone];
+}
+
+// Which (niche, tone) pair the home page leads with by default, one per weekday (JS
+// Date#getDay(): 0=Sunday..6=Saturday) - so a first-time visitor sees real value with zero
+// clicks, and a visitor who comes back another day sees something different. Hand-picked
+// rather than a mechanical rotation through every combo, so the mix stays deliberate: the
+// Hebrew-calendar niche gets exactly one day (Friday, the run-up to Shabbat - a natural fit)
+// rather than crowding out the general-audience examples the rest of the week leans on.
+const FEATURED_ROTATION: { niche: TeaserNiche; tone: ToneStyle }[] = [
+  { niche: "כושר ותזונה", tone: "קליל" }, // Sunday
+  { niche: "עסקים ויזמות", tone: "רשמי" }, // Monday
+  { niche: "הורות ומשפחה", tone: "קליל" }, // Tuesday
+  { niche: "לייף-סטייל ואופנה", tone: "קליל" }, // Wednesday
+  { niche: "אוכל ובישול", tone: "קליל" }, // Thursday
+  { niche: "מועדים ולוח עברי", tone: "קליל" }, // Friday
+  { niche: "פיתוח אישי והשראה", tone: "רשמי" }, // Saturday
+];
+
+export function getFeaturedTeaser(date: Date = new Date()): { niche: TeaserNiche; tone: ToneStyle; idea: TeaserIdea } {
+  const { niche, tone } = FEATURED_ROTATION[date.getDay()];
+  return { niche, tone, idea: getTeaserIdea(niche, tone) };
 }

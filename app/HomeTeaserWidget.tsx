@@ -1,17 +1,36 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { Button, Card, Input, Modal, Select, Spinner } from "@/components/ui";
 import { GENDERS, TONE_STYLES, isValidIsraeliMobile, type ToneStyle } from "@/lib/creators";
-import { TEASER_NICHES, getTeaserIdea, type TeaserIdea, type TeaserNiche } from "@/lib/teaserExamples";
+import { DURATION, EASE_PREMIUM } from "@/lib/motion";
+import { TEASER_NICHES, getFeaturedTeaser, getTeaserIdea, type TeaserIdea, type TeaserNiche } from "@/lib/teaserExamples";
 import styles from "./home.module.css";
 
 export default function HomeTeaserWidget() {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
   const [niche, setNiche] = useState<TeaserNiche>(TEASER_NICHES[0]);
   const [tone, setTone] = useState<ToneStyle>("קליל");
   const [idea, setIdea] = useState<TeaserIdea | null>(null);
+
+  // Loads a real example immediately, with zero clicks, instead of waiting for a visitor to
+  // pick a niche/tone and press "צור לי דוגמה" first. Deferred to a client-only effect (not
+  // computed during the initial render) because it depends on today's real date, which the
+  // server-rendered HTML and the client's first paint could disagree on right at a day
+  // boundary - computing it here instead of inline avoids that hydration-mismatch risk entirely.
+  useEffect(() => {
+    const featured = getFeaturedTeaser();
+    // Deferred to a microtask (rather than called synchronously in the effect body) to avoid
+    // a same-tick cascading render, matching the pattern used elsewhere for effect-driven setState.
+    queueMicrotask(() => {
+      setNiche(featured.niche);
+      setTone(featured.tone);
+      setIdea(featured.idea);
+    });
+  }, []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -131,7 +150,29 @@ export default function HomeTeaserWidget() {
         </Button>
 
         {idea && (
-          <div className={styles.teaserResult}>
+          // key={idea.title} re-triggers this reveal every time the example actually changes
+          // (the auto-loaded first example, or a manual "צור לי דוגמה") - a blur-to-clear text
+          // reveal plus a brief amber glow flash, so the moment reads as "a real result just
+          // arrived" rather than a plain text swap.
+          <motion.div
+            key={idea.title}
+            className={styles.teaserResult}
+            initial={prefersReducedMotion ? undefined : { opacity: 0, filter: "blur(12px)" }}
+            animate={
+              prefersReducedMotion
+                ? undefined
+                : {
+                    opacity: 1,
+                    filter: "blur(0px)",
+                    boxShadow: [
+                      "0 0 0px hsl(var(--primary) / 0)",
+                      "0 0 36px hsl(var(--primary) / 0.3)",
+                      "0 0 0px hsl(var(--primary) / 0)",
+                    ],
+                  }
+            }
+            transition={{ duration: DURATION.slow, ease: EASE_PREMIUM }}
+          >
             <span className={styles.teaserResultType}>{idea.type}</span>
             <h3 className={styles.teaserResultTitle}>{idea.title}</h3>
             <p className={styles.teaserResultDescription}>{idea.description}</p>
@@ -143,7 +184,7 @@ export default function HomeTeaserWidget() {
                 קבל את זה כל יום
               </Button>
             </div>
-          </div>
+          </motion.div>
         )}
       </Card>
 
