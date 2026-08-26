@@ -71,6 +71,10 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
   const [feedbackLoadingId, setFeedbackLoadingId] = useState<number | null>(null);
   const [hint, setHint] = useState("");
   const [remember, setRemember] = useState(false);
+  // The hint field starts collapsed to a plain "+ הוסף כיוון" link (merged under the section
+  // title, no box of its own) instead of an always-open bordered panel - opens into the real
+  // textarea only once someone actually wants to use it.
+  const [hintExpanded, setHintExpanded] = useState(false);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [expandingId, setExpandingId] = useState<number | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
@@ -258,6 +262,13 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
               ? `${IDEA_COUNT} ניצוצות התוכן היומיים שלך - מתחדשים כל יום.`
               : "כבר יצרת מלא ניצוצות תוכן היום ✨ מחר מחכה לך סבב טרי."}
           </p>
+          {/* Merged under the title, not a separate bordered box - collapsed to a plain link
+              by default, expands into the real hint textarea only on click. */}
+          {!hintExpanded && (
+            <button type="button" className={styles.hintToggle} onClick={() => setHintExpanded(true)}>
+              + הוסף כיוון לרעיונות היום
+            </button>
+          )}
         </div>
         {/* On mobile this wrapper becomes a fixed bottom bar (see .regenerateStickyWrap) so the
             main action stays reachable while scrolling through the day's cards - on desktop it's
@@ -270,19 +281,22 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
       </div>
       <SparkLoadingExperience isLoading={loadingAll} onComplete={() => setShowResults(true)} />
 
-      <div className={styles.promptStream}>
-        <span className={styles.promptStreamIcon} aria-hidden="true">
-          ✨
-        </span>
-        <textarea
-          className={styles.hintTextarea}
-          value={hint}
-          onChange={(e) => setHint(e.target.value)}
-          placeholder="כיוון לרעיונות היום (רשות) - למשל: 'משהו על חזרה לשגרה'"
-          maxLength={200}
-          rows={2}
-        />
-      </div>
+      {hintExpanded && (
+        <div className={styles.promptStream}>
+          <span className={styles.promptStreamIcon} aria-hidden="true">
+            ✨
+          </span>
+          <textarea
+            className={styles.hintTextarea}
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
+            placeholder="כיוון לרעיונות היום (רשות) - למשל: 'משהו על חזרה לשגרה'"
+            maxLength={200}
+            rows={2}
+            autoFocus
+          />
+        </div>
+      )}
 
       {error && (
         <p className={styles.errorBanner} role="alert">
@@ -345,43 +359,70 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
                 </span>
                 <span className={styles.cardType}>{idea.type}</span>
               </div>
-              <div
-                className={styles.cardMenuWrapper}
-                ref={openMenuIndex === index ? openMenuRef : undefined}
-              >
+              {/* The two feedback icons + the "⋮" menu clustered together in one corner,
+                  instead of the feedback buttons living full-width at the bottom of the card -
+                  the card keeps exactly one prominent action (expandButton, below). */}
+              <div className={styles.cardCornerActions}>
                 <button
                   type="button"
-                  className={styles.cardMenuTrigger}
-                  aria-haspopup="true"
-                  aria-expanded={openMenuIndex === index}
-                  aria-label="פעולות נוספות"
-                  onClick={() => setOpenMenuIndex((cur) => (cur === index ? null : index))}
+                  className={`${styles.cardIconButton} ${feedback[idea.id] === "used" ? styles.cardIconButtonUsedActive : ""}`}
+                  onClick={() => handleFeedback(idea, "used")}
+                  disabled={feedbackLoadingId === idea.id}
+                  title="השתמשתי בזה"
+                  aria-label="השתמשתי בזה"
+                  aria-pressed={feedback[idea.id] === "used"}
                 >
-                  ⋮
+                  ✓
                 </button>
-                {openMenuIndex === index && (
-                  <div className={styles.cardMenu} role="menu">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={styles.cardMenuItem}
-                      onClick={() => {
-                        handleCopy(idea, index);
-                        setOpenMenuIndex(null);
-                      }}
-                    >
-                      העתק טקסט
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={styles.cardMenuItem}
-                      onClick={() => handleRefreshOne(index)}
-                    >
-                      רענן רעיון
-                    </button>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  className={`${styles.cardIconButton} ${feedback[idea.id] === "dismissed" ? styles.cardIconButtonDismissedActive : ""}`}
+                  onClick={() => handleFeedback(idea, "dismissed")}
+                  disabled={feedbackLoadingId === idea.id}
+                  title="לא בשבילי"
+                  aria-label="לא בשבילי"
+                  aria-pressed={feedback[idea.id] === "dismissed"}
+                >
+                  ✗
+                </button>
+                <div
+                  className={styles.cardMenuWrapper}
+                  ref={openMenuIndex === index ? openMenuRef : undefined}
+                >
+                  <button
+                    type="button"
+                    className={styles.cardMenuTrigger}
+                    aria-haspopup="true"
+                    aria-expanded={openMenuIndex === index}
+                    aria-label="פעולות נוספות"
+                    onClick={() => setOpenMenuIndex((cur) => (cur === index ? null : index))}
+                  >
+                    ⋮
+                  </button>
+                  {openMenuIndex === index && (
+                    <div className={styles.cardMenu} role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={styles.cardMenuItem}
+                        onClick={() => {
+                          handleCopy(idea, index);
+                          setOpenMenuIndex(null);
+                        }}
+                      >
+                        העתק טקסט
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={styles.cardMenuItem}
+                        onClick={() => handleRefreshOne(index)}
+                      >
+                        רענן רעיון
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <h3 className={styles.cardTitle}>{idea.title}</h3>
@@ -411,7 +452,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
               <Button
                 type="button"
                 variant="primary"
-                size="sm"
+                size="md"
                 className={styles.expandButton}
                 onClick={() => handleExpand(idea)}
                 isLoading={isExpanding}
@@ -432,28 +473,6 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
                 </Button>
               </>
             )}
-            <div className={styles.feedbackActions}>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className={`${styles.feedbackButton} ${feedback[idea.id] === "used" ? styles.feedbackButtonUsedActive : ""}`}
-                onClick={() => handleFeedback(idea, "used")}
-                disabled={feedbackLoadingId === idea.id}
-              >
-                השתמשתי בזה {feedback[idea.id] === "used" && "✓"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost-danger"
-                size="sm"
-                className={`${styles.feedbackButton} ${feedback[idea.id] === "dismissed" ? styles.feedbackButtonDismissedActive : ""}`}
-                onClick={() => handleFeedback(idea, "dismissed")}
-                disabled={feedbackLoadingId === idea.id}
-              >
-                לא בשבילי {feedback[idea.id] === "dismissed" && "✗"}
-              </Button>
-            </div>
           </Card>
           );
         })}

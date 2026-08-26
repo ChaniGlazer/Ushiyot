@@ -73,16 +73,30 @@ export function toCreatorProfile(row: CreatorRow): CreatorProfile {
   };
 }
 
-// Whether the post-signup profile questionnaire (see app/onboarding/OnboardingForm.tsx, steps
-// 1-3) still has something worth going back for - checks every field it collects, not just
-// niche, so someone who filled in niche+tone but skipped platforms/target audience/vocabulary
-// style still gets the dashboard's reminder banner (see ProfileReminderBanner.tsx).
+// The 5 fields the post-signup profile questionnaire (app/onboarding/OnboardingForm.tsx,
+// steps 1-3) collects - shared by isProfileIncomplete and getProfileCompleteness so the two
+// can't drift out of sync with each other.
+function profileQuestionnaireFieldsFilled(profile: CreatorProfile): boolean[] {
+  return [
+    Boolean(profile.niche),
+    Boolean(profile.targetAudience),
+    profile.platforms.length > 0,
+    Boolean(profile.toneStyle),
+    Boolean(profile.vocabularyStyle),
+  ];
+}
+
+/** Whether the profile questionnaire still has something worth going back for - checks every
+ * field it collects, not just niche, so someone who filled in niche+tone but skipped
+ * platforms/target audience/vocabulary style still gets the dashboard's reminder. */
 export function isProfileIncomplete(profile: CreatorProfile): boolean {
-  return (
-    !profile.niche ||
-    !profile.targetAudience ||
-    profile.platforms.length === 0 ||
-    !profile.toneStyle ||
-    !profile.vocabularyStyle
-  );
+  return profileQuestionnaireFieldsFilled(profile).some((filled) => !filled);
+}
+
+/** 0-100, in steps of 20 (one per questionnaire field) - shown on the dashboard's profile
+ * completion badge (see ProfileCompletionBadge.tsx). */
+export function getProfileCompleteness(profile: CreatorProfile): number {
+  const fields = profileQuestionnaireFieldsFilled(profile);
+  const filledCount = fields.filter(Boolean).length;
+  return Math.round((filledCount / fields.length) * 100);
 }

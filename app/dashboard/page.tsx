@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentCreator } from "@/lib/auth";
-import { isProfileIncomplete, toCreatorProfile } from "@/lib/creators";
+import { getProfileCompleteness, isProfileIncomplete, toCreatorProfile } from "@/lib/creators";
 import { getDailyInfo } from "@/lib/hebcal";
 import { DEFAULT_IDEA_COUNT } from "@/lib/generateIdeas";
 import { getRemainingIdeaBatchesEstimate } from "@/lib/apiUsage";
@@ -15,7 +15,7 @@ import IdeasBoard from "./IdeasBoard";
 import AccuracyGauge from "./AccuracyGauge";
 import ThemeProvider from "./ThemeProvider";
 import ContextCard from "./ContextCard";
-import ProfileReminderBanner from "./ProfileReminderBanner";
+import ProfileCompletionBadge from "./ProfileCompletionBadge";
 import styles from "./dashboard.module.css";
 
 export const metadata: Metadata = {
@@ -66,26 +66,29 @@ export default async function DashboardPage() {
       <main className={styles.page}>
         <header className={styles.header}>
           <div className={styles.headerInfo}>
-            <h1>ניצוץ</h1>
+            <h1 className={styles.brandName}>ניצוץ</h1>
             <p className={styles.subtitle} title={displayName}>
               שלום, {displayName}
             </p>
             {streak.count > 1 && (
-              <p className={styles.streakLine}>
-                🔥 רצף של {streak.count} ימים
-                {streak.justFroze && (
-                  <span className={styles.streakFrozenNote}> · שמרת על יום המנוחה - הרצף שלך נשמר 🕯️</span>
-                )}
-              </p>
+              <span
+                className={styles.streakBadge}
+                title={
+                  streak.justFroze
+                    ? `רצף של ${streak.count} ימים - שמרת על יום המנוחה, הרצף שלך נשמר 🕯️`
+                    : `רצף של ${streak.count} ימים`
+                }
+              >
+                🔥 {streak.count}
+              </span>
             )}
+            {isProfileIncomplete(profile) && <ProfileCompletionBadge percent={getProfileCompleteness(profile)} />}
           </div>
           <div className={styles.headerActions}>
             <SettingsLink />
             <LogoutButton />
           </div>
         </header>
-
-        {isProfileIncomplete(profile) && <ProfileReminderBanner />}
 
         <div className={styles.topRow}>
           <ContextCard dailyInfo={dailyInfo} showParasha={profile.showParasha} />
