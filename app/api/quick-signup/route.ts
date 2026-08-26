@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/passwords";
 import { GENDERS, isValidIsraeliMobile, type CreatorProfile } from "@/lib/creators";
-import { TEASER_NICHES, type TeaserNiche } from "@/lib/teaserExamples";
 import { attachSessionCookie, createSession } from "@/lib/session";
 import { getDailyInfo } from "@/lib/hebcal";
 import { DEFAULT_IDEA_COUNT, generateIdeas } from "@/lib/generateIdeas";
@@ -51,24 +50,29 @@ export async function POST(request: Request) {
   if (typeof whatsappNumber !== "string" || !isValidIsraeliMobile(whatsappNumber)) {
     return NextResponse.json({ error: "מספר וואטסאפ לא תקין - יש להזין בפורמט 05X-XXXXXXX" }, { status: 400 });
   }
-  if (typeof niche !== "string" || !TEASER_NICHES.includes(niche as TeaserNiche)) {
-    return NextResponse.json({ error: "נישה לא תקינה" }, { status: 400 });
+  if (typeof niche !== "string" || !niche.trim()) {
+    return NextResponse.json({ error: "יש לציין נישה" }, { status: 400 });
   }
   if (typeof toneStyle !== "string" || (toneStyle !== "רשמי" && toneStyle !== "קליל")) {
     return NextResponse.json({ error: "טון דיבור לא תקין" }, { status: 400 });
   }
-  if (typeof teaserTitle !== "string" || typeof teaserDescription !== "string" || typeof teaserType !== "string") {
+  // Optional: present only when the confirmed niche still matches the demo the visitor actually
+  // looked at (see HomeTeaserWidget.handleSignup) - absent whenever they typed a different niche,
+  // so a mismatched demo card is never seeded into an account it doesn't actually describe.
+  const hasTeaser = teaserTitle !== undefined || teaserDescription !== undefined || teaserType !== undefined;
+  if (
+    hasTeaser &&
+    (typeof teaserTitle !== "string" || typeof teaserDescription !== "string" || typeof teaserType !== "string")
+  ) {
     return NextResponse.json({ error: "חסרים פרטי הרעיון המקדים" }, { status: 400 });
   }
 
   const trimmedName = name.trim();
   const trimmedWhatsapp = whatsappNumber.trim();
+  const trimmedNiche = niche.trim();
 
-  const existingName = db.prepare("SELECT id FROM creators WHERE name = ?").get(trimmedName);
-  if (existingName) {
-    return NextResponse.json({ error: "השם הזה כבר תפוס - נסי שם קצת שונה" }, { status: 409 });
-  }
-
+  // Names aren't required to be unique - two different creators can share the same name, as
+  // long as their phone numbers (the account's real unique identifier) differ.
   const existingPhone = db.prepare("SELECT id FROM creators WHERE whatsapp_number = ?").get(trimmedWhatsapp);
   if (existingPhone) {
     return NextResponse.json({ error: "כבר קיים חשבון עם מספר הוואטסאפ הזה" }, { status: 409 });
@@ -79,20 +83,24 @@ export async function POST(request: Request) {
       `INSERT INTO creators (email, name, gender, password_hash, niche, tone_style, whatsapp_number)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(placeholderEmail(trimmedWhatsapp), trimmedName, gender, hashPassword(password), niche, toneStyle, trimmedWhatsapp);
+    .run(placeholderEmail(trimmedWhatsapp), trimmedName, gender, hashPassword(password), trimmedNiche, toneStyle, trimmedWhatsapp);
 
   const creatorId = Number(result.lastInsertRowid);
 
   // Give the visitor visible credit for the teaser idea they already reacted to on the home
   // page: it becomes the first card of their actual first batch (not a hidden side record),
   // marked "used" (they clicked to get it) - a real reason they're not starting from zero.
-  const seedIdea = {
-    title: teaserTitle,
-    description: teaserDescription,
-    type: teaserType,
-    category: "mainstream" as const,
-    rationale: "הרעיון הראשון שקיבלת עוד לפני ההרשמה - כבר מותאם לנישה ולטון שבחרת.",
-  };
+  // Only built when the teaser fields actually came through (see hasTeaser above) - otherwise
+  // every card is generated fresh, on-topic for the niche actually confirmed.
+  const seedIdea = hasTeaser
+    ? {
+        title: teaserTitle as string,
+        description: teaserDescription as string,
+        type: teaserType as string,
+        category: "mainstream" as const,
+        rationale: "הרעיון הראשון שקיבלת עוד לפני ההרשמה - כבר מותאם לנישה ולטון שבחרת.",
+      }
+    : null;
 
   try {
     const profile: CreatorProfile = {
@@ -100,7 +108,7 @@ export async function POST(request: Request) {
       name: trimmedName,
       gender,
       vocabularyStyle: null,
-      niche,
+      niche: trimmedNiche,
       targetAudience: null,
       toneStyle,
       usesEmojis: false,
@@ -114,35 +122,40 @@ export async function POST(request: Request) {
       whatsappNotificationsEnabled: true,
     };
     const dailyInfo = await getDailyInfo();
-    const generatedIdeas = await generateIdeas(profile, dailyInfo, DEFAULT_IDEA_COUNT, null, seedIdea);
-    // The seed idea is always prepended first (see generateIdeas) - mark it "used" since the
-    // visitor already actively clicked to get it, same credit the removed direct-insert gave.
-    setIdeaStatus(generatedIdeas[0].id, creatorId, "used");
+    const generatedIdeas = await generateIdeas(profile, dailyInfo, DEFAULT_IDEA_COUNT, null, seedIdea ?? undefined);
+    // The seed idea, when there is one, is always prepended first (see generateIdeas) - mark it
+    // "used" since the visitor already actively clicked to get it, same credit the removed
+    // direct-insert gave. No seed means every card is freshly generated - none of them stands in
+    // for something the visitor already reacted to, so nothing gets pre-marked "used".
+    if (seedIdea) {
+      setIdeaStatus(generatedIdeas[0].id, creatorId, "used");
+    }
   } catch (error) {
-    console.warn(
-      `[quick-signup] Full batch generation failed for creator ${creatorId} - falling back to just the teaser idea.`,
-      error,
-    );
+    console.warn(`[quick-signup] Full batch generation failed for creator ${creatorId}`, error);
     // Best-effort fallback: at minimum, don't lose the one idea the visitor already saw and
     // reacted to, even though it won't form a full 4-item batch on its own (the dashboard
-    // will show its normal empty state - "צור רעיונות" - until the creator generates one).
-    try {
-      const dailyInfo = await getDailyInfo();
-      db.prepare(
-        `INSERT INTO idea_history (creator_id, date, idea_title, idea_description, idea_type, category, rationale, status, batch_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'used', ?)`,
-      ).run(
-        creatorId,
-        dailyInfo.gregorianDate,
-        seedIdea.title,
-        seedIdea.description,
-        seedIdea.type,
-        seedIdea.category,
-        seedIdea.rationale,
-        `teaser-${creatorId}`,
-      );
-    } catch (fallbackError) {
-      console.warn(`[quick-signup] Could not even record the fallback teaser idea for creator ${creatorId}`, fallbackError);
+    // will show its normal empty state - "צור רעיונות" - until the creator generates one). If
+    // there was no seed to begin with, there's nothing to fall back to - falls through to that
+    // same empty-state outcome.
+    if (seedIdea) {
+      try {
+        const dailyInfo = await getDailyInfo();
+        db.prepare(
+          `INSERT INTO idea_history (creator_id, date, idea_title, idea_description, idea_type, category, rationale, status, batch_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'used', ?)`,
+        ).run(
+          creatorId,
+          dailyInfo.gregorianDate,
+          seedIdea.title,
+          seedIdea.description,
+          seedIdea.type,
+          seedIdea.category,
+          seedIdea.rationale,
+          `teaser-${creatorId}`,
+        );
+      } catch (fallbackError) {
+        console.warn(`[quick-signup] Could not even record the fallback teaser idea for creator ${creatorId}`, fallbackError);
+      }
     }
   }
 

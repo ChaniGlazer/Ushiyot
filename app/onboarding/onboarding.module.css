@@ -260,20 +260,6 @@
   font-size: var(--font-size-xl);
 }
 
-.generatingSpinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  font-size: 1.75rem;
-  color: var(--color-primary);
-}
-
-.generatingSpinner :global(span) {
-  margin-inline-end: 0;
-}
-
 @keyframes completionIn {
   from {
     opacity: 0;

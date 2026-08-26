@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Button, Card, Input, Select, Spinner } from "@/components/ui";
+import { Button, Card, Input, Select, SparkLoadingExperience } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion";
 import { readTeaserSelection, clearTeaserSelection } from "@/lib/teaserSelection";
@@ -76,6 +76,10 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [completed, setCompleted] = useState(false);
+  // Whether the niche field below was silently prefilled from a choice made on the home page's
+  // teaser (see lib/teaserSelection) rather than typed here - shown as a small note so the
+  // pre-fill reads as an editable suggestion, not a fact the system already decided about them.
+  const [nichePrefilledFromTeaser, setNichePrefilledFromTeaser] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const stepSectionRef = useRef<HTMLElement>(null);
   const entranceProps = useEntranceMotion();
@@ -106,7 +110,10 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
       // draft is more authoritative than a pick made earlier on the home page.
       const teaserSelection = readTeaserSelection();
       if (teaserSelection) {
-        if (!restored.niche) restored.niche = teaserSelection.niche;
+        if (!restored.niche) {
+          restored.niche = teaserSelection.niche;
+          setNichePrefilledFromTeaser(true);
+        }
         if (!restored.toneStyle) restored.toneStyle = teaserSelection.tone;
         clearTeaserSelection();
       }
@@ -370,17 +377,9 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
   }
 
   if (submitting) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.completionScreen}>
-          <div className={styles.generatingSpinner}>
-            <Spinner />
-          </div>
-          <h2 className={styles.completionTitle}>מכינים לך את 4 ניצוצות התוכן הראשונים...</h2>
-          <p>כמה שניות, ותהיה לך התחלה מוכנה בדשבורד.</p>
-        </div>
-      </div>
-    );
+    // Same full-screen "thinking" experience as regenerating ideas from the dashboard - a
+    // first-time creator's very first wait shouldn't look like a bare spinner.
+    return <SparkLoadingExperience isLoading />;
   }
 
   return (
@@ -493,9 +492,15 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
               label="באיזו נישה את/ה עוסק/ת? (אופציונלי)"
               type="text"
               value={form.niche}
-              onChange={(e) => update("niche", e.target.value)}
+              onChange={(e) => {
+                setNichePrefilledFromTeaser(false);
+                update("niche", e.target.value);
+              }}
               placeholder="לדוגמה: כושר, פיננסים, הורות, נדל״ן..."
             />
+            {nichePrefilledFromTeaser && (
+              <p className={styles.optionalNote}>מולא אוטומטית מהדוגמה שבחרת בדף הבית - אפשר לשנות בחופשיות.</p>
+            )}
             <Input
               label="מי קהל היעד שלך? (אופציונלי)"
               type="text"
