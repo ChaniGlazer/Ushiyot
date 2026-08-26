@@ -11,7 +11,7 @@ import styles from "./login.module.css";
 export default function LoginForm() {
   const router = useRouter();
   const entranceProps = useEntranceMotion();
-  const [name, setName] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +25,7 @@ export default function LoginForm() {
       const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, password }),
+        body: JSON.stringify({ whatsappNumber, password }),
       });
 
       const data = await response.json();
@@ -54,10 +54,11 @@ export default function LoginForm() {
           <h2 className={styles.title}>התחברות</h2>
 
           <Input
-            label="שם"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            label="מספר וואטסאפ"
+            type="tel"
+            value={whatsappNumber}
+            onChange={(e) => setWhatsappNumber(e.target.value)}
+            placeholder="050-1234567"
             required
           />
 

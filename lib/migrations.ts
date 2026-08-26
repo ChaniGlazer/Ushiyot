@@ -63,7 +63,10 @@ export function runMigrations(db: DatabaseSync): void {
   if (!creatorColumns.some((column) => column.name === "name")) {
     db.exec("ALTER TABLE creators ADD COLUMN name TEXT;");
   }
-  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_creators_name ON creators(name) WHERE name IS NOT NULL;");
+  // Names are allowed to repeat across different creators (login is by phone number, the real
+  // unique identifier - see idx_creators_whatsapp_number and app/api/login/route.ts), so any
+  // uniqueness index left over from before that decision is dropped here.
+  db.exec("DROP INDEX IF EXISTS idx_creators_name;");
   if (!creatorColumns.some((column) => column.name === "gender")) {
     db.exec("ALTER TABLE creators ADD COLUMN gender TEXT CHECK (gender IN ('בן', 'בת'));");
   }

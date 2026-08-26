@@ -127,11 +127,8 @@ export async function POST(request: Request) {
   const trimmedName = name.trim();
   const trimmedWhatsapp = whatsappNumber.trim();
 
-  const existingName = db.prepare("SELECT id FROM creators WHERE name = ?").get(trimmedName);
-  if (existingName) {
-    return NextResponse.json({ error: "השם הזה כבר תפוס - נסי שם קצת שונה" }, { status: 409 });
-  }
-
+  // Names aren't required to be unique - two different creators can share the same name, as
+  // long as their phone numbers (the account's real unique identifier) differ.
   const existingPhone = db.prepare("SELECT id FROM creators WHERE whatsapp_number = ?").get(trimmedWhatsapp);
   if (existingPhone) {
     return NextResponse.json({ error: "כבר קיים חשבון עם מספר הוואטסאפ הזה" }, { status: 409 });

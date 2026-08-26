@@ -59,15 +59,10 @@ export async function PATCH(request: Request) {
     if (typeof name !== "string" || !name.trim() || name.trim().length > MAX_NAME_LENGTH) {
       return NextResponse.json({ error: "יש להזין שם" }, { status: 400 });
     }
-    const trimmedName = name.trim();
-    const existingName = db
-      .prepare("SELECT id FROM creators WHERE name = ? AND id != ?")
-      .get(trimmedName, creator.id);
-    if (existingName) {
-      return NextResponse.json({ error: "השם הזה כבר תפוס - נסי שם קצת שונה" }, { status: 409 });
-    }
+    // Names aren't required to be unique - two different creators can share the same name, as
+    // long as their phone numbers (the account's real unique identifier) differ.
     updates.push("name = ?");
-    values.push(trimmedName);
+    values.push(name.trim());
   }
 
   if (niche !== undefined) {
