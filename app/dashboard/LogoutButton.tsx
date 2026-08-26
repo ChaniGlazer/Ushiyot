@@ -16,8 +16,8 @@ export default function LogoutButton() {
   }
 
   return (
-    <Button type="button" variant="secondary" size="sm" onClick={handleLogout} disabled={loggingOut}>
-      {loggingOut ? "מתנתק/ת..." : "התנתקות"}
+    <Button type="button" variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut}>
+      {loggingOut ? "מתנתק/ת..." : "🚪 התנתקות"}
     </Button>
   );
 }

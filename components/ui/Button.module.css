@@ -75,6 +75,20 @@
   border-color: var(--color-danger);
 }
 
+/* Lightest-weight variant - text + icon, no visible border - for a compact secondary action
+   row (e.g. the dashboard header's settings/logout buttons) that shouldn't compete visually
+   with the page's real content. */
+.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: hsl(var(--text-muted));
+}
+
+.ghost:hover:not(:disabled) {
+  background: hsl(var(--primary) / 0.08);
+  color: hsl(var(--primary));
+}
+
 /* Low-stakes negative action (e.g. "not for me") - danger-colored text on a neutral (not
    danger-colored) border, so it still reads as a real button next to .secondary, just quieter.
    Distinct from .danger, which is reserved for higher-stakes destructive actions like delete-account. */

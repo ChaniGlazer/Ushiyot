@@ -6,7 +6,7 @@ import { SPRING_SOFT, type MotionConflictingProps } from "@/lib/motion";
 import Spinner from "./Spinner";
 import styles from "./Button.module.css";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost-danger";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost-danger" | "ghost";
 export type ButtonSize = "md" | "sm";
 
 type OwnProps = {
