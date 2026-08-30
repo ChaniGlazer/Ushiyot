@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Button, Card, SparkButton, SparkLoadingExperience } from "@/components/ui";
 import { getEntranceMotionProps } from "@/lib/useEntranceMotion";
 import { DURATION, EASE_PREMIUM, SPRING_SOFT, STAGGER_STEP } from "@/lib/motion";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import styles from "./dashboard.module.css";
 import type { ContentIdea } from "@/lib/generateIdeas";
 
@@ -21,7 +22,6 @@ function splitIntoSegments(text: string): string[] {
 type FeedbackStatus = "used" | "dismissed";
 
 type Props = {
-  creatorId: number;
   initialIdeas: ContentIdea[];
   initialFeedback: Record<number, FeedbackStatus>;
   remainingBatches: number;
@@ -41,16 +41,13 @@ const CATEGORY_BADGE_CLASS: Record<string, string> = {
   wildcard: "categoryWildcard",
 };
 
-async function fetchIdeas(
-  creatorId: number,
-  count: number,
-  hint: string,
-  remember: boolean,
-): Promise<ContentIdea[]> {
+// creatorId is never sent by the client - /api/generate-ideas derives it from the session
+// cookie itself, so this always acts on the logged-in creator's own account.
+async function fetchIdeas(count: number, hint: string, remember: boolean): Promise<ContentIdea[]> {
   const hintParam = hint.trim() ? `&hint=${encodeURIComponent(hint.trim())}` : "";
   const rememberParam = remember && hint.trim() ? "&remember=true" : "";
-  const response = await fetch(`/api/generate-ideas?creatorId=${creatorId}&count=${count}${hintParam}${rememberParam}`);
-  const data = await response.json();
+  const response = await fetch(`/api/generate-ideas?count=${count}${hintParam}${rememberParam}`);
+  const data = await parseJsonResponse(response);
 
   if (!response.ok) {
     throw new Error(data.error ?? "שגיאה ביצירת רעיונות תוכן");
@@ -59,7 +56,7 @@ async function fetchIdeas(
   return data.ideas as ContentIdea[];
 }
 
-export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, remainingBatches }: Props) {
+export default function IdeasBoard({ initialIdeas, initialFeedback, remainingBatches }: Props) {
   const prefersReducedMotion = Boolean(useReducedMotion());
   const [ideas, setIdeas] = useState<ContentIdea[]>(initialIdeas);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +112,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
     setShowResults(false);
     setError(null);
     try {
-      const newIdeas = await fetchIdeas(creatorId, IDEA_COUNT, hint, remember);
+      const newIdeas = await fetchIdeas(IDEA_COUNT, hint, remember);
       setIdeas(newIdeas);
       setHasFreshBatch(true);
       setFeedback({});
@@ -133,7 +130,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
     setOpenMenuIndex(null);
     setError(null);
     try {
-      const [newIdea] = await fetchIdeas(creatorId, 1, hint, false);
+      const [newIdea] = await fetchIdeas(1, hint, false);
       setIdeas((prev) => prev.map((idea, i) => (i === index ? newIdea : idea)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "שגיאה ברענון הרעיון");
@@ -155,7 +152,7 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ideaId: idea.id, status }),
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         throw new Error(data.error ?? "שגיאה בעדכון הסטטוס");
@@ -195,13 +192,12 @@ export default function IdeasBoard({ creatorId, initialIdeas, initialFeedback, r
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          creatorId,
           title: idea.title,
           description: idea.description,
           type: idea.type,
         }),
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         throw new Error(data.error ?? "שגיאה בהרחבת הרעיון");

@@ -39,7 +39,9 @@ export type DailyHebcalInfo = {
   hillulot: HebcalEvent[];
 };
 
-function toIsraelDateString(date: Date): string {
+// Exported so callers that need a best-effort "today" (e.g. a fallback when the real Hebcal
+// call fails - see getFallbackDailyInfo) can compute it without another network round-trip.
+export function toIsraelDateString(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jerusalem",
     year: "numeric",
@@ -48,8 +50,13 @@ function toIsraelDateString(date: Date): string {
   }).format(date);
 }
 
+// Hebcal is a free, unauthenticated third-party API with no SLA - a timeout keeps a slow
+// response from hanging the caller indefinitely (a bare fetch() has no default timeout), so
+// failures surface quickly enough for callers' fail-open/fallback handling to actually kick in.
+const HEBCAL_TIMEOUT_MS = 5000;
+
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(HEBCAL_TIMEOUT_MS) });
   if (!response.ok) {
     throw new Error(`Hebcal request failed (${response.status}): ${url}`);
   }
@@ -123,30 +130,68 @@ async function getShabbatTimes(gregorianDate: string): Promise<ShabbatTimes> {
   };
 }
 
+// Pure UTC arithmetic (noon, to stay clear of any DST edge) - avoids any dependence on the
+// server process's local timezone, matching the same pattern lib/streak.ts's own addDays uses.
+// A bare `new Date(dateStr + "T12:00:00")` parses in the server's local zone instead, which only
+// happens to give the right weekday/date today because Render's Node runtime defaults to UTC -
+// it would silently misbehave if that ever changed (different host/platform, TZ env var set).
+function dayOfWeekUtc(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay(); // 0=Sun ... 6=Sat
+}
+
 // Hebcal's /shabbat endpoint always returns the upcoming Friday/Saturday's info,
 // regardless of which date it's queried with - it does not scope by day on its own.
 // Parasha/candle-lighting/havdalah are only relevant once that Shabbat is close, so
 // they're hidden outside Thursday-Saturday.
 function isShabbatWindow(gregorianDate: string): boolean {
-  const day = new Date(`${gregorianDate}T12:00:00`).getDay(); // 0=Sun ... 6=Sat
-  return day >= 4; // Thu, Fri, Sat
+  return dayOfWeekUtc(gregorianDate) >= 4; // Thu, Fri, Sat
 }
 
 // Cached per Israel-calendar-day so middleware doesn't call Hebcal on every request -
 // candle-lighting/havdalah for "today" don't change within the same day.
 let cachedShabbatWindow: { forDate: string; candleLighting: number | null; havdalah: number | null } | null = null;
 
+// The in-flight *promise* itself (not just the resolved value) is cached too, keyed by date -
+// on a cache miss, every request that lands before the first fetch resolves (e.g. a burst of
+// page loads right as the Israel-calendar day rolls over, since middleware runs this on every
+// page request) awaits the SAME underlying Hebcal call instead of each firing its own redundant
+// one. Cleared once settled (success or failure) so a failed fetch doesn't get stuck cached and
+// a later call retries normally.
+let inFlightShabbatWindow: {
+  forDate: string;
+  promise: Promise<{ candleLighting: number | null; havdalah: number | null }>;
+} | null = null;
+
 async function getShabbatWindow(gregorianDate: string): Promise<{ candleLighting: number | null; havdalah: number | null }> {
   if (cachedShabbatWindow?.forDate === gregorianDate) {
     return cachedShabbatWindow;
   }
-  const shabbat = await getShabbatTimes(gregorianDate);
-  cachedShabbatWindow = {
-    forDate: gregorianDate,
-    candleLighting: shabbat.candleLighting ? new Date(shabbat.candleLighting).getTime() : null,
-    havdalah: shabbat.havdalah ? new Date(shabbat.havdalah).getTime() : null,
-  };
-  return cachedShabbatWindow;
+
+  if (inFlightShabbatWindow?.forDate === gregorianDate) {
+    return inFlightShabbatWindow.promise;
+  }
+
+  const promise = (async () => {
+    const shabbat = await getShabbatTimes(gregorianDate);
+    const result = {
+      forDate: gregorianDate,
+      candleLighting: shabbat.candleLighting ? new Date(shabbat.candleLighting).getTime() : null,
+      havdalah: shabbat.havdalah ? new Date(shabbat.havdalah).getTime() : null,
+    };
+    cachedShabbatWindow = result;
+    return result;
+  })();
+
+  inFlightShabbatWindow = { forDate: gregorianDate, promise };
+
+  try {
+    return await promise;
+  } finally {
+    if (inFlightShabbatWindow?.forDate === gregorianDate) {
+      inFlightShabbatWindow = null;
+    }
+  }
 }
 
 // Whether it's currently between candle-lighting and havdalah for the current/upcoming
@@ -160,9 +205,8 @@ export async function isShabbatNow(now: Date = new Date()): Promise<boolean> {
 }
 
 function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T12:00:00`);
-  d.setDate(d.getDate() + days);
-  return toIsraelDateString(d);
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return toIsraelDateString(new Date(Date.UTC(y, m - 1, d + days, 12)));
 }
 
 /**
@@ -174,7 +218,7 @@ export async function getRestDaysInRange(startDate: string, endDate: string): Pr
   const restDays = new Set<string>();
 
   for (let d = startDate; d <= endDate; d = addDays(d, 1)) {
-    if (new Date(`${d}T12:00:00`).getDay() === 6) restDays.add(d);
+    if (dayOfWeekUtc(d) === 6) restDays.add(d);
   }
 
   const url =
@@ -187,6 +231,20 @@ export async function getRestDaysInRange(startDate: string, endDate: string): Pr
   }
 
   return restDays;
+}
+
+// A safe, locally-computable stand-in for getDailyInfo() when the real Hebcal call fails -
+// used by app/dashboard/page.tsx so a Hebcal outage degrades to "no Hebrew date/events/Shabbat
+// info shown today" instead of crashing the dashboard. gregorianDate is still accurate (pure
+// timezone math, no network call); everything Hebcal itself would have supplied is empty.
+export function getFallbackDailyInfo(date: Date = new Date()): DailyHebcalInfo {
+  return {
+    gregorianDate: toIsraelDateString(date),
+    hebrewDate: { day: 0, month: "", year: 0, formatted: "" },
+    events: [],
+    shabbat: { parasha: null, candleLighting: null, havdalah: null },
+    hillulot: [],
+  };
 }
 
 export async function getDailyInfo(date: Date = new Date()): Promise<DailyHebcalInfo> {

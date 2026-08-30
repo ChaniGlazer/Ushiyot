@@ -2,16 +2,31 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { useEntranceMotion } from "@/lib/useEntranceMotion";
+import { DURATION, EASE_PREMIUM, FADE_UP, STAGGER_STEP } from "@/lib/motion";
 import HomeTeaserWidget from "./HomeTeaserWidget";
 import styles from "./home.module.css";
 
 const PARALLAX_SCROLL_RANGE = [0, 300];
 
 export default function Home() {
-  const heroEntrance = useEntranceMotion(0);
-  const teaserEntrance = useEntranceMotion(1);
   const prefersReducedMotion = useReducedMotion();
+  // Mount-triggered fade-up, not the shared whileInView-on-scroll hook used elsewhere - every
+  // element here is above the fold at load, so they should all reveal together as soon as the
+  // page mounts rather than each waiting on its own scroll-into-view observer (which previously
+  // let authLinks - unanimated - render a beat ahead of the hero/teaser fading in later).
+  function entranceProps(index: number) {
+    if (prefersReducedMotion) return {};
+    return {
+      variants: FADE_UP,
+      initial: "hidden",
+      animate: "visible",
+      transition: { duration: DURATION.entrance, ease: EASE_PREMIUM, delay: index * STAGGER_STEP },
+    } as const;
+  }
+
+  const authEntrance = entranceProps(0);
+  const heroEntrance = entranceProps(0);
+  const teaserEntrance = entranceProps(1);
   // Scrolling the page past the hero drifts the logo up and fades it slightly - a subtle
   // parallax layer independent of heroGroup's own mount entrance (applied to the h1 alone so
   // the two animations don't both drive the same element's transform/opacity at once).
@@ -24,7 +39,7 @@ export default function Home() {
       {/* Quiet corner, not competing with the free example below - a returning/decided visitor
           can still get straight to login/signup, but a first-time visitor's eye isn't pulled
           away from the teaser by two big colored buttons before they've seen any value. */}
-      <div className={styles.authLinks}>
+      <motion.div className={styles.authLinks} {...authEntrance}>
         <Link href="/login" className={styles.authLink}>
           התחברות
         </Link>
@@ -34,7 +49,7 @@ export default function Home() {
         <Link href="/onboarding" className={styles.authLink}>
           הרשמה
         </Link>
-      </div>
+      </motion.div>
 
       <motion.div className={styles.heroGroup} {...heroEntrance}>
         <motion.h1 className={styles.logo} style={{ y: logoY, opacity: logoOpacity }}>

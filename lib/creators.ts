@@ -6,6 +6,14 @@ export function isValidIsraeliMobile(phone: string): boolean {
   return ISRAELI_MOBILE_REGEX.test(phone.trim());
 }
 
+// Storage/lookup form of a phone number - digits only, dash stripped. isValidIsraeliMobile
+// accepts the number with or without its optional dash (e.g. "050-1234567" and "0501234567"
+// both pass), but whatsapp_number needs one canonical form so a login/reset lookup for a number
+// typed differently than at signup still matches the same row.
+export function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, "");
+}
+
 // Identity-neutral reframing of the old "sector" (מגזר) question: instead of asking the
 // creator to self-label religiously/ethnically, we ask which world of imagery, tone and
 // vocabulary they want their content to use. Functionally still drives the same AI tone

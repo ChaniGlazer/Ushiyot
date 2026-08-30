@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/passwords";
-import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
+import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile, normalizePhone } from "@/lib/creators";
 import { attachSessionCookie, createSession } from "@/lib/session";
 
 type CreatorPayload = {
@@ -125,11 +125,16 @@ export async function POST(request: Request) {
   }
 
   const trimmedName = name.trim();
-  const trimmedWhatsapp = whatsappNumber.trim();
+  // Stored digits-only so a later login/reset lookup (also normalized - see app/api/login and
+  // app/api/reset-password) matches regardless of whether the dash isValidIsraeliMobile allows
+  // was typed at signup.
+  const trimmedWhatsapp = normalizePhone(whatsappNumber);
 
   // Names aren't required to be unique - two different creators can share the same name, as
   // long as their phone numbers (the account's real unique identifier) differ.
-  const existingPhone = db.prepare("SELECT id FROM creators WHERE whatsapp_number = ?").get(trimmedWhatsapp);
+  const existingPhone = db
+    .prepare("SELECT id FROM creators WHERE REPLACE(whatsapp_number, '-', '') = ?")
+    .get(trimmedWhatsapp);
   if (existingPhone) {
     return NextResponse.json({ error: "כבר קיים חשבון עם מספר הוואטסאפ הזה" }, { status: 409 });
   }

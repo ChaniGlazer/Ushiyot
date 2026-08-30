@@ -17,7 +17,7 @@ import { buildMessageSequence, type LoadingMessage } from "@/lib/sparkLoadingCop
 // progress theater instead.
 // -----------------------------------------------------------------------------------------
 
-const MESSAGE_INTERVAL_MS = 3200;
+const MESSAGE_INTERVAL_MS = 4200;
 const RING_RADIUS = 54;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 

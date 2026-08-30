@@ -3,9 +3,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Top-anchored, not centered - centering meant the whole block (including authLinks) would
+     visibly shift upward once the teaser's example result populates client-side and grows the
+     page's total content height. Anchoring to the top keeps every element's position stable
+     regardless of how much content loads in below it. */
+  justify-content: flex-start;
   gap: var(--space-lg);
   padding: var(--space-2xl);
+  padding-top: clamp(var(--space-2xl), 10vh, 6rem);
   text-align: center;
 }
 

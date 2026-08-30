@@ -8,6 +8,7 @@ import { GENDERS, TONE_STYLES, isValidIsraeliMobile, type ToneStyle } from "@/li
 import { DURATION, EASE_PREMIUM } from "@/lib/motion";
 import { TEASER_NICHES, getFeaturedTeaser, getTeaserIdea, type TeaserIdea, type TeaserNiche } from "@/lib/teaserExamples";
 import { saveTeaserSelection } from "@/lib/teaserSelection";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import styles from "./home.module.css";
 
 export default function HomeTeaserWidget() {
@@ -137,7 +138,7 @@ export default function HomeTeaserWidget() {
         }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         setGenerating(false);

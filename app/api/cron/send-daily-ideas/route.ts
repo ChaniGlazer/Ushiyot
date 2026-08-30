@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { toCreatorProfile } from "@/lib/creators";
-import { getDailyInfo } from "@/lib/hebcal";
+import { getDailyInfo, getFallbackDailyInfo } from "@/lib/hebcal";
 import { generateIdeas } from "@/lib/generateIdeas";
 import { formatDailyIdeasMessage, sendWhatsappMessage } from "@/lib/sendWhatsapp";
-import type { CreatorRow } from "@/lib/session";
+import { CREATOR_ROW_COLUMNS, type CreatorRow } from "@/lib/session";
+import { constantTimeEqual } from "@/lib/secretCompare";
 
 type ActiveCreatorRow = CreatorRow & { whatsapp_number: string };
 
@@ -16,7 +17,7 @@ function isAuthorized(request: Request): boolean {
   const querySecret = searchParams.get("secret");
   const headerSecret = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-  return querySecret === secret || headerSecret === secret;
+  return (!!querySecret && constantTimeEqual(querySecret, secret)) || (!!headerSecret && constantTimeEqual(headerSecret, secret));
 }
 
 export async function GET(request: Request) {
@@ -24,15 +25,39 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "לא מורשה" }, { status: 401 });
   }
 
-  const creators = db
-    .prepare(
-      `SELECT id, email, name, gender, vocabulary_style, niche, target_audience, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, show_parasha, shabbat_mode_enabled, whatsapp_notifications_enabled, created_at
-       FROM creators
-       WHERE whatsapp_number IS NOT NULL AND whatsapp_number != '' AND whatsapp_notifications_enabled = 1`,
-    )
-    .all() as ActiveCreatorRow[];
+  // Column list comes from CREATOR_ROW_COLUMNS (lib/session.ts) - the same source of truth
+  // getCreatorById/getCreatorBySession use - instead of a hand-typed copy that can silently
+  // drift from CreatorRow. No shabbat_mode_enabled column: Shabbat mode is deliberately NOT a
+  // per-creator setting (see app/api/settings/route.ts's comment); the site blocks everyone
+  // unconditionally via middleware.ts instead.
+  let creators: ActiveCreatorRow[];
+  try {
+    creators = db
+      .prepare(
+        `SELECT ${CREATOR_ROW_COLUMNS}
+         FROM creators
+         WHERE whatsapp_number IS NOT NULL AND whatsapp_number != '' AND whatsapp_notifications_enabled = 1`,
+      )
+      .all() as ActiveCreatorRow[];
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "שגיאה בשליפת יוצרות פעילות" },
+      { status: 500 },
+    );
+  }
 
-  const dailyInfo = await getDailyInfo();
+  // If Hebcal is down, still generate and send ideas to every creator today - just without the
+  // Hebrew date/events/Shabbat decoration - rather than a single Hebcal failure silently
+  // skipping the daily message for every creator (the per-creator try/catch below only isolates
+  // generateIdeas/sendWhatsappMessage failures, not this one shared call above the loop).
+  let dailyInfo;
+  try {
+    dailyInfo = await getDailyInfo();
+  } catch (error) {
+    console.error("[cron/send-daily-ideas] getDailyInfo() failed - falling back to minimal daily info", error);
+    dailyInfo = getFallbackDailyInfo();
+  }
+  const hebrewDateText = dailyInfo.hebrewDate.formatted || dailyInfo.gregorianDate;
 
   const results: { creatorId: number; status: "sent" | "skipped"; reason?: string }[] = [];
 
@@ -40,7 +65,7 @@ export async function GET(request: Request) {
     try {
       const profile = toCreatorProfile(creatorRow);
       const ideas = await generateIdeas(profile, dailyInfo);
-      const message = formatDailyIdeasMessage(dailyInfo.hebrewDate.formatted, ideas);
+      const message = formatDailyIdeasMessage(hebrewDateText, ideas);
       await sendWhatsappMessage(creatorRow.whatsapp_number, message);
       results.push({ creatorId: creatorRow.id, status: "sent" });
     } catch (error) {

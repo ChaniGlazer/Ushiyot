@@ -133,16 +133,26 @@
 
 .headerInfo {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
   min-width: 0;
   flex: 1;
 }
 
 .brandName {
   flex-shrink: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   font-weight: 700;
+  opacity: 0.6;
+}
+
+.greetingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
 }
 
 /* Side by side, not stacked - a compact quick-access row (settings/logout only; the
@@ -174,8 +184,8 @@ a.headerIconButton {
 .subtitle {
   min-width: 0;
   flex-shrink: 1;
-  font-size: var(--font-size-sm);
-  opacity: 0.7;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -623,35 +633,33 @@ article.heroCard:hover {
 }
 
 .cardMenuTrigger {
-  /* 44x44 minimum touch target (Apple/Google guidance) - the visible circle stays smaller
-     via a background-clip trick isn't worth the complexity here, so the whole hit area grows
-     with it; it reads fine at this size since it's already a bordered control, not bare text. */
+  /* 44x44 minimum touch target (Apple/Google guidance) kept for tap accuracy, but rendered as
+     bare icon (no border/background) rather than a bordered control like the feedback icons. */
   width: 2.75rem;
   height: 2.75rem;
   line-height: 1;
   font-size: 1.1rem;
-  background: transparent;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-control);
+  background: none;
+  border: none;
   color: inherit;
+  opacity: 0.7;
   cursor: pointer;
   transition:
-    border-color 0.2s var(--ease-premium),
     color 0.2s var(--ease-premium),
-    transform 0.15s var(--ease-premium),
-    background 0.15s var(--ease-premium);
+    opacity 0.2s var(--ease-premium),
+    transform 0.15s var(--ease-premium);
 }
 
 .cardMenuTrigger:hover {
-  border-color: var(--color-primary);
   color: var(--color-primary);
+  opacity: 1;
 }
 
 /* :active (not just :hover) so touch users get real press feedback - hover never fires on a
    tap, only on an actual pointer hover, which touch input doesn't have. */
 .cardMenuTrigger:active {
   transform: scale(0.94);
-  background: var(--color-primary-subtle);
+  opacity: 1;
 }
 
 .cardMenu {

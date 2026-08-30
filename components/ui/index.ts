@@ -23,3 +23,6 @@ export type { ToggleProps } from "./Toggle";
 
 export { default as SparkLoadingExperience } from "./SparkLoadingExperience";
 export type { SparkLoadingExperienceProps } from "./SparkLoadingExperience";
+
+export { default as ErrorState } from "./ErrorState";
+export type { ErrorStateProps } from "./ErrorState";

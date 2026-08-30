@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button, Card, Input } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import styles from "./login.module.css";
 
 export default function LoginForm() {
@@ -28,7 +29,7 @@ export default function LoginForm() {
         body: JSON.stringify({ whatsappNumber, password }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         setError(data.error ?? "משהו השתבש, נסו שוב");

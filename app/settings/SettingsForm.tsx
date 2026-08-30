@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Button, Card, Input, Select, Toggle } from "@/components/ui";
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import { PLATFORMS, TONE_STYLES } from "@/lib/creators";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import DeleteAccountButton from "./DeleteAccountButton";
 import styles from "./settings.module.css";
 
@@ -64,7 +65,7 @@ export default function SettingsForm({ initial }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         setMessage({ type: "error", text: data.error ?? "משהו השתבש, נסו שוב" });

@@ -8,6 +8,7 @@ import { Button, Card, Input, Select, SparkLoadingExperience } from "@/component
 import { useEntranceMotion } from "@/lib/useEntranceMotion";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion";
 import { readTeaserSelection, clearTeaserSelection } from "@/lib/teaserSelection";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import styles from "./onboarding.module.css";
 import { GENDERS, PLATFORMS, VOCABULARY_STYLES, TONE_STYLES, isValidIsraeliMobile } from "@/lib/creators";
 
@@ -266,7 +267,7 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
         }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         setError(data.error ?? "משהו השתבש, נסו שוב");
@@ -333,7 +334,7 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
         body: JSON.stringify(profileUpdates),
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         setError(data.error ?? "משהו השתבש, נסו שוב");
@@ -350,7 +351,9 @@ export default function OnboardingForm({ existingCreatorId }: Props) {
       // conditional: the dashboard's own empty state ("צור רעיונות") is a fine fallback either way.
       if (effectiveCreatorId && form.niche.trim()) {
         try {
-          await fetch(`/api/generate-ideas?creatorId=${effectiveCreatorId}`);
+          // No creatorId query param - the session cookie set at account creation already
+          // identifies this creator; /api/generate-ideas only ever acts on the logged-in session.
+          await fetch("/api/generate-ideas");
         } catch {
           // ignored - see comment above
         }

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/passwords";
-import { GENDERS, isValidIsraeliMobile, type CreatorProfile } from "@/lib/creators";
+import { GENDERS, isValidIsraeliMobile, normalizePhone, type CreatorProfile } from "@/lib/creators";
 import { attachSessionCookie, createSession } from "@/lib/session";
 import { getDailyInfo } from "@/lib/hebcal";
 import { DEFAULT_IDEA_COUNT, generateIdeas } from "@/lib/generateIdeas";
 import { setIdeaStatus } from "@/lib/ideaHistory";
+import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 
 type QuickSignupPayload = {
   name?: unknown;
@@ -21,6 +22,12 @@ type QuickSignupPayload = {
 
 const MAX_NAME_LENGTH = 60;
 
+// By IP only (no account/phone exists yet at this point) - each successful signup here also
+// triggers a real OpenAI batch generation (see below), so this is the main defense against
+// scripted account-creation spam converting directly into OpenAI spend.
+const SIGNUP_RATE_LIMIT = 5;
+const SIGNUP_RATE_WINDOW_MS = 60 * 60 * 1000;
+
 // Same placeholder scheme as the full signup route (app/api/creators/route.ts) - the `email`
 // column is still NOT NULL UNIQUE at the DB level, signup itself never asks for one.
 function placeholderEmail(whatsappNumber: string): string {
@@ -33,6 +40,10 @@ export async function POST(request: Request) {
 
   if (!body) {
     return NextResponse.json({ error: "גוף הבקשה לא תקין" }, { status: 400 });
+  }
+
+  if (isRateLimited(`quick-signup:ip:${getClientIp(request)}`, SIGNUP_RATE_LIMIT, SIGNUP_RATE_WINDOW_MS)) {
+    return NextResponse.json({ error: "יותר מדי הרשמות מאותה כתובת - נסו שוב בעוד שעה" }, { status: 429 });
   }
 
   const { name, gender, password, whatsappNumber, niche, toneStyle, teaserTitle, teaserDescription, teaserType } =
@@ -68,12 +79,17 @@ export async function POST(request: Request) {
   }
 
   const trimmedName = name.trim();
-  const trimmedWhatsapp = whatsappNumber.trim();
+  // Stored digits-only so a later login/reset lookup (also normalized - see app/api/login and
+  // app/api/reset-password) matches regardless of whether the dash isValidIsraeliMobile allows
+  // was typed at signup.
+  const trimmedWhatsapp = normalizePhone(whatsappNumber);
   const trimmedNiche = niche.trim();
 
   // Names aren't required to be unique - two different creators can share the same name, as
   // long as their phone numbers (the account's real unique identifier) differ.
-  const existingPhone = db.prepare("SELECT id FROM creators WHERE whatsapp_number = ?").get(trimmedWhatsapp);
+  const existingPhone = db
+    .prepare("SELECT id FROM creators WHERE REPLACE(whatsapp_number, '-', '') = ?")
+    .get(trimmedWhatsapp);
   if (existingPhone) {
     return NextResponse.json({ error: "כבר קיים חשבון עם מספר הוואטסאפ הזה" }, { status: 409 });
   }

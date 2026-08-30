@@ -39,7 +39,7 @@ export default function AccuracyGauge({ score, label, transparency }: Props) {
 
   return (
     <Card as={motion.div} className={styles.accuracyCard} {...entranceProps}>
-      <span className={styles.contextLabel}>דיוק הפרופיל</span>
+      <span className={styles.contextLabel}>רמת ההיכרות</span>
       <div className={styles.accuracyRow}>
       <svg ref={countRef} viewBox="0 0 100 100" width="72" height="72" className={styles.accuracyRing} aria-hidden="true">
         <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="var(--color-border)" strokeWidth="9" />

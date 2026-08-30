@@ -2,10 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { constantTimeEqual } from "@/lib/secretCompare";
 
 function checkSecret(formData: FormData): string | null {
   const secret = String(formData.get("secret") ?? "");
-  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+  if (!process.env.ADMIN_SECRET || !secret || !constantTimeEqual(secret, process.env.ADMIN_SECRET)) {
     return null;
   }
   return secret;

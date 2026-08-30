@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Modal } from "@/components/ui";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import styles from "./DeleteAccountButton.module.css";
 
 export default function DeleteAccountButton() {
@@ -23,7 +24,7 @@ export default function DeleteAccountButton() {
 
     try {
       const response = await fetch("/api/delete-account", { method: "POST" });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         throw new Error(data.error ?? "שגיאה במחיקת החשבון");

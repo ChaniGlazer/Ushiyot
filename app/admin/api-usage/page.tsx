@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { DAILY_COST_LIMIT_USD } from "@/lib/config";
+import { constantTimeEqual } from "@/lib/secretCompare";
 import adminStyles from "../admin.module.css";
 import styles from "./api-usage.module.css";
 
@@ -26,7 +27,7 @@ export default async function ApiUsagePage({
   const { secret } = await searchParams;
   const adminSecret = process.env.ADMIN_SECRET;
 
-  if (!adminSecret || secret !== adminSecret) {
+  if (!adminSecret || !secret || !constantTimeEqual(secret, adminSecret)) {
     return (
       <main className={adminStyles.unauthorized}>
         <h1>לא מורשה</h1>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentCreator } from "@/lib/auth";
 import { getProfileCompleteness, isProfileIncomplete, toCreatorProfile } from "@/lib/creators";
-import { getDailyInfo } from "@/lib/hebcal";
+import { getDailyInfo, getFallbackDailyInfo, type DailyHebcalInfo } from "@/lib/hebcal";
 import { DEFAULT_IDEA_COUNT } from "@/lib/generateIdeas";
 import { getRemainingIdeaBatchesEstimate } from "@/lib/apiUsage";
 import { getTodaysIdeaBatch } from "@/lib/ideaHistory";
@@ -29,7 +29,15 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const dailyInfo = await getDailyInfo();
+  // If Hebcal is down/slow, still render the dashboard - just without today's Hebrew
+  // date/events/Shabbat info - rather than crashing the app's main page.
+  let dailyInfo: DailyHebcalInfo;
+  try {
+    dailyInfo = await getDailyInfo();
+  } catch (error) {
+    console.error("[dashboard] getDailyInfo() failed - falling back to minimal daily info", error);
+    dailyInfo = getFallbackDailyInfo();
+  }
 
   const todaysIdeas = getTodaysIdeaBatch(creator.id, dailyInfo.gregorianDate, DEFAULT_IDEA_COUNT);
   const initialIdeas = todaysIdeas.map(({ id, title, description, type, category, rationale }) => ({
@@ -67,22 +75,24 @@ export default async function DashboardPage() {
         <header className={styles.header}>
           <div className={styles.headerInfo}>
             <h1 className={styles.brandName}>ניצוץ</h1>
-            <p className={styles.subtitle} title={displayName}>
-              שלום, {displayName}
-            </p>
-            {streak.count > 1 && (
-              <span
-                className={styles.streakBadge}
-                title={
-                  streak.justFroze
-                    ? `רצף של ${streak.count} ימים - שמרת על יום המנוחה, הרצף שלך נשמר 🕯️`
-                    : `רצף של ${streak.count} ימים`
-                }
-              >
-                🔥 {streak.count}
-              </span>
-            )}
-            {isProfileIncomplete(profile) && <ProfileCompletionBadge percent={getProfileCompleteness(profile)} />}
+            <div className={styles.greetingRow}>
+              <p className={styles.subtitle} title={displayName}>
+                שלום, {displayName}
+              </p>
+              {streak.count > 1 && (
+                <span
+                  className={styles.streakBadge}
+                  title={
+                    streak.justFroze
+                      ? `רצף של ${streak.count} ימים - שמרת על יום המנוחה, הרצף שלך נשמר 🕯️`
+                      : `רצף של ${streak.count} ימים`
+                  }
+                >
+                  🔥 {streak.count}
+                </span>
+              )}
+              {isProfileIncomplete(profile) && <ProfileCompletionBadge percent={getProfileCompleteness(profile)} />}
+            </div>
           </div>
           <div className={styles.headerActions}>
             <SettingsLink />
@@ -112,7 +122,6 @@ export default async function DashboardPage() {
         </div>
 
         <IdeasBoard
-          creatorId={creator.id}
           initialIdeas={initialIdeas}
           initialFeedback={initialFeedback}
           remainingBatches={remainingBatches}

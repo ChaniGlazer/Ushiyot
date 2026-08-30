@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Button, Card } from "@/components/ui";
+import { constantTimeEqual } from "@/lib/secretCompare";
 import EventForm from "./EventForm";
 import { createEvent, deleteEvent } from "./actions";
 import adminStyles from "../admin.module.css";
@@ -29,7 +30,7 @@ export default async function EventsAdminPage({
   const { secret } = await searchParams;
   const adminSecret = process.env.ADMIN_SECRET;
 
-  if (!adminSecret || secret !== adminSecret) {
+  if (!adminSecret || !secret || !constantTimeEqual(secret, adminSecret)) {
     return (
       <main className={adminStyles.unauthorized}>
         <h1>לא מורשה</h1>

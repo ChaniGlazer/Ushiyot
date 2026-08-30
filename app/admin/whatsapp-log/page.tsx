@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui";
+import { constantTimeEqual } from "@/lib/secretCompare";
 import CopyMessageButton from "./CopyMessageButton";
 import adminStyles from "../admin.module.css";
 import styles from "./whatsapp-log.module.css";
@@ -28,7 +29,7 @@ export default async function WhatsappLogPage({
   const { secret } = await searchParams;
   const adminSecret = process.env.ADMIN_SECRET;
 
-  if (!adminSecret || secret !== adminSecret) {
+  if (!adminSecret || !secret || !constantTimeEqual(secret, adminSecret)) {
     return (
       <main className={adminStyles.unauthorized}>
         <h1>לא מורשה</h1>

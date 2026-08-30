@@ -1,7 +1,14 @@
 import type { CreatorProfile } from "./creators";
-import { OPENAI_MODEL } from "./config";
+import { OPENAI_MODEL, OPENAI_TIMEOUT_MS } from "./config";
 import { computeActualCostUsd, estimateCallCostUsd } from "./costEstimate";
-import { DAILY_LIMIT_MESSAGE, recordApiUsage, wouldExceedDailyLimit } from "./apiUsage";
+import {
+  adjustApiUsage,
+  DAILY_LIMIT_MESSAGE,
+  GLOBAL_DAILY_LIMIT_MESSAGE,
+  refundApiUsage,
+  reserveApiUsage,
+  wouldExceedGlobalDailyLimit,
+} from "./apiUsage";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
@@ -115,7 +122,19 @@ async function performExpandCall(
     OPENAI_MODEL,
   );
 
-  if (wouldExceedDailyLimit(profile.id, estimatedCost)) {
+  // Global backstop (across all creators) checked before the per-creator reservation - see
+  // wouldExceedGlobalDailyLimit's docstring.
+  if (wouldExceedGlobalDailyLimit(estimatedCost)) {
+    console.warn(
+      `[api-usage] Blocked expand-idea call before it was sent - global daily cost cap reached ` +
+        `(creator ${profile.id}, estimated cost of this call: $${estimatedCost.toFixed(4)}).`,
+    );
+    throw new Error(GLOBAL_DAILY_LIMIT_MESSAGE);
+  }
+
+  // Reserves the estimated cost atomically before the call is sent (not just a check) - see
+  // reserveApiUsage's docstring for why this closes a race two concurrent calls could exploit.
+  if (!reserveApiUsage(profile.id, estimatedCost)) {
     console.warn(
       `[api-usage] Blocked expand-idea call before it was sent - creator ${profile.id} would exceed the daily cost cap ` +
         `(estimated cost of this call: $${estimatedCost.toFixed(4)}).`,
@@ -123,35 +142,44 @@ async function performExpandCall(
     throw new Error(DAILY_LIMIT_MESSAGE);
   }
 
-  const response = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      response_format: { type: "json_object" },
-      temperature: 0.8,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        response_format: { type: "json_object" },
+        temperature: 0.8,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(`בקשה ל-OpenAI נכשלה (${response.status}): ${errorBody}`);
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      throw new Error(`בקשה ל-OpenAI נכשלה (${response.status}): ${errorBody}`);
+    }
+  } catch (error) {
+    // The call never completed - the reservation above shouldn't count against the cap.
+    refundApiUsage(profile.id, estimatedCost);
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error("הרחבת הרעיון ארכה יותר מדי זמן - נסו שוב");
+    }
+    throw error;
   }
 
   const data = (await response.json()) as OpenAiChatResponse;
 
   if (data.usage) {
     const actualCost = computeActualCostUsd(data.usage.prompt_tokens, data.usage.completion_tokens, OPENAI_MODEL);
-    recordApiUsage(profile.id, actualCost);
-  } else {
-    recordApiUsage(profile.id, estimatedCost);
+    adjustApiUsage(profile.id, actualCost - estimatedCost);
   }
 
   const content = data.choices?.[0]?.message?.content;

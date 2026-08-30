@@ -28,6 +28,22 @@ export type CreatorRow = {
   created_at: string;
 };
 
+// Single source of truth for "every column CreatorRow promises" - every full-row creator query
+// in the app (session lookup, the daily WhatsApp cron) reads through this constant instead of
+// hand-typing its own column list, so a column added/removed from CreatorRow can't silently
+// desync from a query elsewhere the way it previously did (see app/api/generate-ideas and
+// app/api/expand-idea, which used to run their own incomplete copy of this list).
+export const CREATOR_ROW_COLUMNS =
+  "id, email, name, gender, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, target_audience, show_parasha, whatsapp_notifications_enabled, created_at";
+
+export function getCreatorById(creatorId: number): CreatorRow | null {
+  const creator = db.prepare(`SELECT ${CREATOR_ROW_COLUMNS} FROM creators WHERE id = ?`).get(creatorId) as
+    | CreatorRow
+    | undefined;
+
+  return creator ?? null;
+}
+
 export function createSession(creatorId: number): { id: string; expiresAt: Date } {
   const id = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
@@ -59,14 +75,7 @@ export function getCreatorBySession(sessionId: string | undefined): CreatorRow |
     return null;
   }
 
-  const creator = db
-    .prepare(
-      `SELECT id, email, name, gender, vocabulary_style, niche, tone_style, uses_emojis, children_count, city, family_status, platforms, whatsapp_number, persistent_context, target_audience, show_parasha, whatsapp_notifications_enabled, created_at
-       FROM creators WHERE id = ?`,
-    )
-    .get(session.creator_id) as CreatorRow | undefined;
-
-  return creator ?? null;
+  return getCreatorById(session.creator_id);
 }
 
 export function attachSessionCookie(response: NextResponse, session: { id: string; expiresAt: Date }): void {

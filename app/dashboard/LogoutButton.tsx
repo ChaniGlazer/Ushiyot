@@ -12,7 +12,15 @@ export default function LogoutButton() {
 
   async function handleLogout() {
     setLoggingOut(true);
-    await fetch("/api/logout", { method: "POST" });
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } catch {
+      // Network failure - the session cookie may not have been cleared server-side, but the
+      // intent is still to leave the authenticated area, so navigate away regardless rather than
+      // leaving the button stuck disabled with no way to retry.
+    } finally {
+      setLoggingOut(false);
+    }
     router.push("/login");
     router.refresh();
   }

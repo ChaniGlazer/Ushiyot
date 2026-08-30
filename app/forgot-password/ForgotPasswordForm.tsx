@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components/ui";
+import { parseJsonResponse } from "@/lib/parseJsonResponse";
 import styles from "../login/login.module.css";
 
 export default function ForgotPasswordForm() {
@@ -37,7 +38,7 @@ export default function ForgotPasswordForm() {
         body: JSON.stringify({ name, whatsappNumber, newPassword }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         setError(data.error ?? "משהו השתבש, נסו שוב");
