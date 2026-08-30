@@ -11,6 +11,7 @@ import { getRecentContext } from "@/lib/getRecentContext";
 import { touchStreak } from "@/lib/streak";
 import SettingsLink from "./SettingsLink";
 import LogoutButton from "./LogoutButton";
+import FeedbackButton from "./FeedbackButton";
 import IdeasBoard from "./IdeasBoard";
 import AccuracyGauge from "./AccuracyGauge";
 import ThemeProvider from "./ThemeProvider";
@@ -95,6 +96,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
+            <FeedbackButton />
             <SettingsLink />
             <LogoutButton />
           </div>

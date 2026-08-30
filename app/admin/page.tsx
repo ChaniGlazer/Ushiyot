@@ -48,6 +48,8 @@ export default async function AdminHubPage({
 
   const whatsappCount = (db.prepare("SELECT COUNT(*) as c FROM whatsapp_log").get() as { c: number }).c;
 
+  const feedbackCount = (db.prepare("SELECT COUNT(*) as c FROM feedback_notes").get() as { c: number }).c;
+
   const secretParam = `?secret=${encodeURIComponent(secret)}`;
 
   return (
@@ -70,6 +72,11 @@ export default async function AdminHubPage({
         <Link href={`/admin/whatsapp-log${secretParam}`} className={styles.hubCard}>
           <strong>לוג הודעות וואטסאפ (הדמיה)</strong>
           <p className={styles.hubCardSub}>{whatsappCount} הודעות נשלחו בהדמיה בסך הכול</p>
+        </Link>
+
+        <Link href={`/admin/feedback${secretParam}`} className={styles.hubCard}>
+          <strong>הערות ממשתמשות</strong>
+          <p className={styles.hubCardSub}>{feedbackCount} הערות התקבלו בסך הכול</p>
         </Link>
       </div>
     </main>
