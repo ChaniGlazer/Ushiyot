@@ -1,5 +1,11 @@
 export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 
+// Base URL for absolute links that must resolve outside the app's own request context (e.g.
+// app/sitemap.ts, which Google fetches directly rather than through a page render where a
+// relative URL would work). Override with NEXT_PUBLIC_SITE_URL if the Render service is ever
+// moved to a custom domain.
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://ushiyot.onrender.com";
+
 export const DEFAULT_IDEA_COUNT = 4;
 
 // A bare fetch() has no default timeout - without this, a hung OpenAI connection would leave
